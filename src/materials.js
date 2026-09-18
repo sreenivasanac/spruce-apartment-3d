@@ -143,7 +143,7 @@ function plateMat(kind) {
 function cherryMap() {
   const t = canvasTex(1024, (ctx, s) => {
     const r = rng(23);
-    ctx.fillStyle = '#5e2c1a'; ctx.fillRect(0, 0, s, s);
+    ctx.fillStyle = '#55261a'; ctx.fillRect(0, 0, s, s);
     for (let i = 0; i < 24; i++) { // broad, low-contrast tonal bands (mostly lighter so boards don't read as different stock)
       ctx.fillStyle = `rgba(${r() < 0.25 ? '50,20,10' : '150,80,45'},${0.03 + r() * 0.05})`;
       ctx.fillRect(0, r() * s, s, 8 + r() * 60);
@@ -248,7 +248,6 @@ export const MAT = {
   stuccoSoffit: std({ color: 0xded7c6, roughness: 1, bumpMap: tex.stucco, bumpScale: 4, name: 'stucco-soffit-heavy' }),
   partitionWhite: std({ color: 0xe6e4dc, roughness: 0.6, name: 'partition-white-paint' }),
   hvacIvory: std({ color: 0xe4e1d6, roughness: 0.45, metalness: 0.1, name: 'daikin-ivory' }),
-  hvacDark: std({ color: 0x1c1d1f, roughness: 0.7, name: 'condenser-cavity' }),
   lineset: std({ color: 0xdedcd4, roughness: 0.6, name: 'lineset-white-vinyl' }),
   railTan: std({ color: 0xa89a82, roughness: 0.8, name: 'neighbour-rail-tan' }),
   roofEave: std({ color: 0x8c8980, roughness: 0.9, name: 'roof-eave' }),
@@ -261,5 +260,8 @@ export const MAT = {
   plateOutlet: plateMat('outlet'), plateGfci: plateMat('gfci'), plateRocker: plateMat('rocker'), plateRocker2: plateMat('rocker2'), plateCoax: plateMat('coax'),
   transition: std({ color: 0x2a1d18, roughness: 0.5, name: 'transition-vinyl-espresso' }),
   hvacShadow: std({ color: 0x6f6d68, roughness: 0.8, name: 'minisplit-shadow-gap' }),
+  // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
+  futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
+    emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
 };
 export const TEX = tex;

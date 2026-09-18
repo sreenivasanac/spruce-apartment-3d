@@ -292,15 +292,19 @@ export const FINISHES = {
 
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
 export const FURNITURE = {
-  desk: { w: 63, d: 24, h: 29, topT: 1, leg: 1.5, pos: [298, 232], rot: -90, // w/d/h user-measured; rest from table.jpg
-    endPanelW: 16.5, tubeT: 1, frameInset: 0.5, railInset: 1, railH: 1.5, footH: 0.5, footDia: 1.2, edgeR: 0.06, tubeR: 0.12, woodTile: 24 },
+  desk: { w: 63, d: 24, h: 29, topT: 0.7, leg: 1.5, pos: [298, 232], rot: -90, // w/d/h user-measured; rest from table.jpg
+    endPanelW: 16, seamW: 0.03, tubeT: 1, frameInset: 0.5, railInset: 1, railH: 1.5, footH: 0.5, footDia: 1.2, edgeR: 0.06, tubeR: 0.12, woodTile: 24,
+    clip: [2.2, 1.5, 0.25], clipLap: 0.5, boltDia: 0.35, boltT: 0.12, boltPitch: 1.2 }, // clip = mid-span connector plate [w,h,t], laps 0.5" onto the front rail => hangs 1" below it
   chair: { w: 25, d: 25.5, h: 47, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg
     seat: { w: 19, d: 19, t: 3, r: 4.5, panT: 0.8 }, back: { w: 18.5, h: 21, bottom: 20.5, r: 4.5, taper: 0.84, reclineDeg: 8, lumbar: 1.4, wrap: 1.6, tube: 0.55, z: -7.6 },
     head: { w: 12.5, h: 6.5, r: 2.4, wrap: 1.3, tiltDeg: 12, dz: 0.3 }, arm: { topElev: 25.5, x: 11, len: 12.5, tube: 0.42, bandW: 1.9, flareDeg: 3 },
     base: { r: 11, armW: 1.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 }, lift: { r: 1.05, pistonR: 0.55, top: 11 }, mech: { w: 7, d: 9, h: 1.6 } },
-  futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 5, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
-    bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 2.4, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
-    consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 4 },
+  futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 6, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
+    bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 1.5, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.45, dimple: 0.4, seamW: 0.75, edgeR: 0.7, pipeR: 0.23,
+    stitch: { w: 0.1, pitch: 0.15, color: 0x6a6e76 }, // top-stitch thread along the tuft seams
+    consoleW: 10, consoleT: 3.5, consoleHingeUp: 2, consoleSeamFrac: 0.4, cupR: 1.55, cupDepth: 2.2, // console pivots consoleHingeUp" up the back -> lies ~8deg rear-high on the seat
+    armT: 5.5, armTiltDeg: 6, bolster: { crown: 0.9, bulge: 0.8, endBulge: 0.5, pinch: 0.16, droop: 0.5, yawDeg: [1.6, -1.1], shift: [0.3, -0.15] }, // loose pillows: [left, right] differ
+    legTopR: 1.05, legBotR: 0.55, footR: 1.25, footT: 0.3, stayR: 0.4, hingePlate: { w: 1.5, l: 6, t: 0.15 }, linenTile: 4 },
   // rot -90: the table's front (+Z, the side the top lifts toward) faces the futon sitter (plan -x)
   liftTop: { w: 41, d: 19.5, h: 14.5, legH: 6, liftRise: 7.5, liftFwd: 6, marbleW: 16.5, pos: [209, 222], rot: -90, // w/d user-given; h ASSUMED from lift_top1/2.jpg proportions (F2); ~13" knee gap to the futon front
     topT: 0.7, topOver: 0.5, panelT: 0.9, fasciaT: 0.6, fasciaInset: 0.25, topGap: 0.08, edgeR: 0.04, cornerR: 0.1, plankW: 6.5, seamW: 0.03,
