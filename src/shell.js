@@ -1,8 +1,8 @@
 // Shell: walls (with openings), floors, ceilings. Pure function of dimensions.js.
 import * as THREE from 'three';
-import { ENV, WALLS, ROOMS, X, Y, m } from './dimensions.js';
+import { ENV, WALLS, ROOMS, m } from './dimensions.js';
 import { MAT } from './materials.js';
-import { box, slab, group } from './lib/build.js';
+import { box, boxAt, slab, group } from './lib/build.js';
 
 /** Split a wall into solid boxes around its openings. Returns [{a,b,lo,hi}] pieces along the wall axis. */
 export function wallPieces(w) {
@@ -28,44 +28,56 @@ export function wallColliders() {
   return rects;
 }
 
+/** Six-face material list for a wall piece (BoxGeometry order +x -x +y -y +z -z): paint, accent paint, or exterior stucco per side. */
+function faceMats(w, accented) {
+  const mats = Array(6).fill(MAT.wall);
+  const [hi, lo] = w.axis === 'x' ? [4, 5] : [0, 1]; // hi = face at c+t, lo = face at c
+  if (accented) mats[w.accent.side === 'hi' ? hi : lo] = MAT.wallAccent;
+  if (w.id.startsWith('ext-')) mats[w.c === 0 ? lo : hi] = MAT.stuccoExt; // outside face of the envelope
+  return mats;
+}
+
 export function buildShell() {
   const walls = group('walls');
   for (const w of WALLS) {
     const ext = w.id.startsWith('ext-');
-    for (const [i, p] of wallPieces(w).entries()) {
+    const ac = w.accent && { a: w.accent.a ?? w.a, b: w.accent.b ?? w.b };
+    // split pieces at the accent limits so a face is either fully accent or fully greige (no overlay planes -> no z-fighting)
+    const pieces = wallPieces(w).flatMap((p) => {
+      const cuts = ac ? [ac.a, ac.b].filter((v) => v > p.a && v < p.b) : [];
+      const bounds = [p.a, ...cuts, p.b];
+      return bounds.slice(0, -1).map((s, k) => ({ ...p, a: s, b: bounds[k + 1] }));
+    });
+    for (const [i, p] of pieces.entries()) {
       const len = p.b - p.a, hh = p.hi - p.lo;
-      const b = w.axis === 'x' ? box(len, hh, w.t, MAT.wall) : box(w.t, hh, len, MAT.wall);
-      b.name = `wall:${w.id}:${i}`;
+      const accented = !!ac && p.a >= ac.a && p.b <= ac.b;
+      const mats = faceMats(w, accented);
+      const b = w.axis === 'x' ? box(len, hh, w.t, mats) : box(w.t, hh, len, mats);
+      b.name = `${accented ? 'accent' : 'wall'}:${w.id}:${i}`;
       const mid = (p.a + p.b) / 2, cc = w.c + w.t / 2;
       b.position.set(m(w.axis === 'x' ? mid : cc), m(p.lo + hh / 2), m(w.axis === 'x' ? cc : mid));
       b.userData.exterior = ext;
       walls.add(b);
     }
   }
-  // Accent paint: living-room south wall is a darker gray (IMG_3932, IMG_3948).
-  const accent = box(0.1, ENV.ceiling, Y.westInt - Y.ponyB, MAT.wallAccent, 'accent:living-south');
-  accent.position.set(m(X.southInt - 0.05), m(ENV.ceiling / 2), m((Y.westInt + Y.ponyB) / 2));
-  accent.castShadow = false;
-  walls.add(accent);
 
+  // Carpet has real thickness (pile stands proud of the LVP at the bedroom entry, IMG_3937) — boxes, not floating planes.
+  const carpet = (r, name) => boxAt(r[0], r[1], 0, r[2] - r[0], r[3] - r[1], ENV.carpetT, MAT.carpet, name);
   const floors = group('floors',
     slab([0, 0, ENV.w, ENV.d], 0, MAT.lvp, true, 'floor:lvp'),
-    slab(ROOMS.bedroom.r, 0.5, MAT.carpet, true, 'floor:carpet-bedroom'),
-    slab(ROOMS.bedCloset.r, 0.5, MAT.carpet, true, 'floor:carpet-closet'),
+    boxAt(0, 0, -ENV.floorSlabT - 0.05, ENV.w, ENV.d, ENV.floorSlabT, MAT.stuccoExt, 'floor:slab'),
+    carpet(ROOMS.bedroom.r, 'floor:carpet-bedroom'),
+    carpet(ROOMS.bedCloset.r, 'floor:carpet-closet'),
   );
+  floors.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
-  const ceilings = group('ceilings',
-    slab([0, 0, ENV.w, ENV.d], ENV.ceiling, MAT.ceiling, false, 'ceiling:main'),
-    slab([X.stubA, 0, ENV.w, Y.ponyB], ENV.kitchenCeiling, MAT.ceiling, false, 'ceiling:kitchen-drop'),
-  );
-  // fascia of the dropped kitchen ceiling (two visible edges)
-  const dropH = ENV.ceiling - ENV.kitchenCeiling;
-  const f1 = box(0.5, dropH, Y.ponyB, MAT.ceiling, 'ceiling:kitchen-fascia-dining');
-  f1.position.set(m(X.stubA + 0.25), m(ENV.kitchenCeiling + dropH / 2), m(Y.ponyB / 2));
-  const f2 = box(ENV.w - X.stubA, dropH, 0.5, MAT.ceiling, 'ceiling:kitchen-fascia-living');
-  f2.position.set(m((X.stubA + ENV.w) / 2), m(ENV.kitchenCeiling + dropH / 2), m(Y.ponyB - 0.25));
-  ceilings.add(f1, f2);
-  ceilings.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  // One continuous ceiling plane: IMG_3933/3934 show no soffit or drop anywhere between dining, kitchen and living.
+  const ceiling = slab([0, 0, ENV.w, ENV.d], ENV.ceiling, MAT.ceiling, false, 'ceiling:main');
+  // Solid roof above it. Shadows are taken from its TOP face so low sun can't leak along the wall/ceiling junction.
+  const roofMat = MAT.stuccoExt.clone();
+  roofMat.shadowSide = THREE.FrontSide;
+  const roof = boxAt(0, 0, ENV.ceiling + 0.05, ENV.w, ENV.d, ENV.roofT, roofMat, 'ceiling:roof');
+  const ceilings = group('ceilings', ceiling, roof);
 
   const shell = group('shell', walls, floors, ceilings);
   shell.userData.ceilings = ceilings; // dollhouse/plan views hide this
