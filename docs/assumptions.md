@@ -61,3 +61,11 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - O5. Slider: fixed sash on the outer track at the S end, operable sash + white pull on the inner track at the N end, insect screen outside the operable half, blinds gathered at the N end (IMG_3925). Cornice valance measured off IMG_3925 as x 158.5-288 (runs ~9" past the S casing and over the blind stack), 5.5" tall, 4.5" deep.
 - O6. Bedroom window: operable sash on the S half (thicker frame in IMG_3936), fixed lite N half, half screen outside; blind is an outside mount 2" wider than the opening each side, fully raised (26 x 2" slats).
 - O7. Closet mirror doors: both panels parked at the living-wall end (IMG_3937); the room-side panel is a real planar reflection (three.js Reflector, 768x1536, skipped during the AO pass), the hidden rear panel a plain metal mirror. Coat-closet bypass slabs have no photo: white slabs, flush nickel cup pulls, both closed.
+
+## Finishes
+- FN1. LVP planks run E–W (plan-y) in every room incl. bath (one continuous floor; IMG_3950 is ambiguous). Plank 6×48, texture tile 96×96 with random stagger.
+- FN2. One light orange-peel texture is used on all walls and the ceiling (the heavier knock-down in hall/bath/kitchen is not differentiated — walls share one shell material).
+- FN3. Wall-plate positions are read off the photos to ±6"; outlets centred 14" AFF, switches 48", vanity GFCI 44". No plates are modelled on walls no photo shows (living N wall, entry-door wall, bath interior).
+- FN4. Only the smoke detector visible in IMG_3933 is modelled (ceiling outside the W/D + hall doors); the white box above the bedroom closet (IMG_3937) is modelled as a 2.75×3.5" door-chime/sounder.
+- FN5. Mini-split head 32×11.5×8.5 (Daikin 9–12k class), end 4" from the window wall, with a remote cradle on the wall below it (IMG_3939). No baseboard behind casework, tub or vanity; boards stop at the 2.5" casings.
+- FN6. LVP→carpet change at the bedroom entry is a 1.75" espresso vinyl reducer on the y=156.5 line.

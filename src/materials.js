@@ -97,12 +97,13 @@ function orangePeelMap() {
 
 // Greige cut-pile carpet: per-fibre noise + soft light/dark mottling from foot traffic and vacuuming (IMG_3935).
 function carpetMaps() {
-  const mottled = (base, amp, seed, n, alpha) => (ctx, s) => {
+  const mottled = (base, amp, seed, n, alpha, tuft) => (ctx, s) => {
     noise(ctx, s, base, amp, seed);
     const r = rng(seed + 1);
+    for (let i = 0; i < 14000; i++) { const rad = 2.5 + r() * 5, lite = r() < 0.5; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? tuft[0] : tuft[1], 0.1 + r() * 0.22)); } // yarn tufts ~1/4" so the pile still reads from across the room
     for (let i = 0; i < n; i++) { const rad = 25 + r() * 110, lite = r() < 0.5, a = alpha * (0.5 + r()); wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? '215,200,184' : '70,60,52', a)); }
   };
-  return [canvasTex(1024, mottled([130, 117, 105], 60, 3, 220, 0.045)), canvasTex(1024, mottled([128, 128, 128], 220, 4, 0, 0), { srgb: false })];
+  return [canvasTex(1024, mottled([126, 113, 101], 60, 3, 220, 0.045, ['196,180,164', '62,52,44'])), canvasTex(1024, mottled([128, 128, 128], 160, 4, 0, 0, ['255,255,255', '0,0,0']), { srgb: false })];
 }
 
 // Wall-plate faces at 64 px/in (white thermoplastic). kind: outlet | gfci | rocker | rocker2 | coax. Sizes: FINISHES.plate.
@@ -142,14 +143,14 @@ function plateMat(kind) {
 function cherryMap() {
   const t = canvasTex(1024, (ctx, s) => {
     const r = rng(23);
-    ctx.fillStyle = '#47201a'; ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 40; i++) { // broad tonal bands
-      ctx.fillStyle = `rgba(${r() < 0.5 ? '30,10,6' : '100,50,32'},${0.04 + r() * 0.06})`;
+    ctx.fillStyle = '#5e2c1a'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 24; i++) { // broad, low-contrast tonal bands (mostly lighter so boards don't read as different stock)
+      ctx.fillStyle = `rgba(${r() < 0.25 ? '50,20,10' : '150,80,45'},${0.03 + r() * 0.05})`;
       ctx.fillRect(0, r() * s, s, 8 + r() * 60);
     }
-    for (let i = 0; i < 700; i++) { // fine grain, wraps in U
-      ctx.strokeStyle = `rgba(${r() < 0.65 ? '24,8,4' : '120,64,42'},${0.05 + r() * 0.12})`;
-      ctx.lineWidth = 0.5 + r() * 1.3;
+    for (let i = 0; i < 800; i++) { // fine grain, wraps in U; lighter orange streaks dominate like bookcase.jpg
+      ctx.strokeStyle = `rgba(${r() < 0.4 ? '40,14,6' : '150,80,45'},${0.08 + r() * 0.2})`;
+      ctx.lineWidth = 0.5 + r() * 1.4;
       const y = r() * s, a = (r() - 0.5) * 10;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke();
     }
@@ -229,8 +230,12 @@ export const MAT = {
   applianceSteel: std({ color: 0xd2d4d6, metalness: 0.8, roughness: 0.34, roughnessMap: tex.brushed, envMapIntensity: 3, name: 'appliance-stainless' }), // IBL is dim (0.35) so boost reflections to read as bright steel
   sinkSteel: std({ color: 0x8e9194, metalness: 0.3, roughness: 0.5, envMapIntensity: 0.6, name: 'sink-stainless-satin' }), // mostly diffuse: the bowl sits right under the ceiling fixture and blows out as a mirror
   // mandir: cherry with grain along U (mandir.js maps U along each board's length), darkened antique brass, silk runner base
-  cherryGrain: std({ map: cherryMap(), roughness: 0.42, name: 'cherry-grain' }),
-  antiqueBrass: std({ color: 0x8f6d34, metalness: 1, roughness: 0.42, name: 'antique-brass' }),
+  cherryGrain: std({ map: cherryMap(), roughness: 0.5, name: 'cherry-grain' }),
+  antiqueBrass: std({ color: 0x77582a, metalness: 1, roughness: 0.52, name: 'antique-brass' }),
+  // hand-polished puja brass: blotchy roughness + faint tarnish so highlights break up (UVs 0..1 on lathed articles)
+  brassPatina: std({ color: 0xc9a24a, metalness: 1, roughness: 1, name: 'brass-patina',
+    roughnessMap: canvasTex(256, (ctx, s) => { noise(ctx, s, [70, 70, 70], 50, 41); const r = rng(42); for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '150,150,150' : '40,40,40'},${0.1 + r() * 0.2})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 6 + r() * 40, 4 + r() * 18, r() * 3, 0, 7); ctx.fill(); } }, { repeat: [2, 2], srgb: false }),
+    map: canvasTex(256, (ctx, s) => { const r = rng(43); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 50; i++) { ctx.fillStyle = `rgba(${r() < 0.6 ? '150,110,70' : '255,235,190'},${0.08 + r() * 0.16})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 8 + r() * 45, 5 + r() * 20, r() * 3, 0, 7); ctx.fill(); } }, { repeat: [2, 2] }) }),
   // closets / laundry: natural pine rod (grain along U, tile 0.5 m), appliance enamel, flex foil duct (4 ribs per tile along U; closets.js sets repeat so a tile = 3\"), rubber hose
   pine: std({ map: canvasTex(512, (ctx, s) => { const r = rng(31); ctx.fillStyle = '#d2a476'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 260; i++) { ctx.strokeStyle = `rgba(${r() < 0.7 ? '150,96,52' : '235,200,160'},${0.1 + r() * 0.25})`; ctx.lineWidth = 0.6 + r() * 2.2; const y = r() * s, a = (r() - 0.5) * 24; ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke(); } }, { repeat: [2, 1] }), roughness: 0.6, name: 'pine-natural' }),
   applianceWhite: phys({ color: 0xf3f3f1, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.25, name: 'appliance-white-enamel' }),

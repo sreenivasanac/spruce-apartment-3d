@@ -115,7 +115,7 @@ export const WALLS = [
 export const DOORS = {
   entry: { w: 36, wall: 'ext-east', hinge: 'a', swingInto: 'dining', openDeg: 0, type: 'slab-entry' },
   bathDoor: { w: 26, wall: 'bath-s', hinge: 'b', swingInto: 'bath', openDeg: 88, type: 'slab' },
-  bedDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 84, type: 'slab' }, // 84: lever clears the W/D side wall
+  bedDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 88, type: 'slab' },
   wdDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'dining', openDeg: 100, type: 'louver' }, // IMG_3945: hinged on the entry-side jamb, standing open
   linenDoor: { w: 24, wall: 'linen-front', hinge: 'b', swingInto: 'hall', openDeg: 0, type: 'slab' }, // IMG_3940/3941: lever on the vanity side
   coatCloset: { w: 40, wall: 'hall-wall', type: 'bypass-slab' },
@@ -131,7 +131,7 @@ export const SLIDER = {
   blindsStackAt: 'a', blindsStack: [160, 183], vanes: 34, vaneW: 3.4, vanePleat: 0.5, vaneBottom: 1.5, vaneTop: 88,
 };
 export const BED_WINDOW = {
-  a: 47, b: 119, sill: 24, head: 80, frame: 2, frameD: 3, sash: 1.6, sashT: 1.2, mullion: 2,
+  a: 47, b: 119, sill: 24, head: 80, frame: 2, frameD: 3, sash: 1.6, sashT: 1.2, mullion: 2.5,
   blindValance: { h: 3, d: 2.5, overhang: 2, drop: 1 }, blind: { slats: 26, slatW: 2, slatPitch: 0.15, railH: 0.7, cordDrop: 24 },
 };
 // Door joinery + hardware (openings item). Shell openings are the FINISHED openings; jamb = thin white lining.
@@ -307,13 +307,13 @@ export const FURNITURE = {
     leg: { topR: 0.85, botR: 0.65, inset: 2.2, splayDeg: 3, centreR: 0.4, footH: 0.25 },
     mech: { closedDeg: 8, armW: 0.8, armT: 0.14, armGap: 6, frontPivotZ: 7.2, railW: 0.5, railH: 0.8, plateT: 0.12, plateH: 1.8, plateL: 12, pinR: 0.22, barR: 0.2,
       spring: { bodyR: 0.36, rodR: 0.15, along: 5, baseBack: 5, baseDrop: 4 }, seconds: 0.9 } },
-  mandir: { w: 29.5, d: 13, h: 71, baseH: 28, pos: [188, 12.8], rot: 0, // bookcase, ASSUMED Sauder-style 5-shelf w/ doors
+  mandir: { w: 29.5, d: 13, h: 71, baseH: 25.5, pos: [188, 13.1], rot: 0, // bookcase, ASSUMED Sauder-style 5-shelf w/ doors
     // carcass details scaled off bookcase.jpg (w/h/d are OVERALL incl. cornice overhang)
-    corniceH: 4.75, corniceSteps: [[0.9, 0.25], [0.7, 0.5], [0.65, 0.7], [2.5, 1]], corniceOver: 1, sideT: 1.5, backT: 0.25, topT: 0.75,
-    plinthH: 3.25, plinthProud: 0.25, deckT: 1.5, shelfT: 1, shelfInset: 1, nosingH: 1.25, nosingD: 0.6, edge: 0.06, // corniceSteps = [h, overhang] bottom→top
-    door: { t: 0.75, gap: 0.125, frameW: 2.4, panelRaise: 0.3, pullH: 4, pullOff: 1.4, pullProj: 0.8, pullElevFrac: 0.62 },
+    corniceH: 4.75, corniceSteps: [[0.9, 0.25], [0.7, 0.5], [0.65, 0.7], [2.5, 1]], corniceOver: 1, sideT: 1.75, backT: 0.25, topT: 0.75,
+    plinthH: 3.25, plinthProud: 0, deckT: 1.5, shelfT: 1, shelfInset: 1, nosingH: 1.5, nosingD: 0.6, edge: 0.06, // corniceSteps = [h, overhang] bottom→top
+    door: { t: 0.75, gap: 0.125, frameW: 2.4, panelRaise: 0.3, pullH: 4, pullW: 1, pullOff: 1.4, pullProj: 0.55, pullElevFrac: 0.5, hingeDia: 0.3, hingeL: 2.2, hingeFrac: 0.15, mullionW: 1.5 },
     // puja articles (ASSUMED typical sizes, styled after home_mandir_earlier.jpeg)
-    decor: { runnerDrop: 2.5, runnerMargin: 0.75, frameBar: 0.8, frameT: 0.6, frameLean: 7, pic: [7, 9], omPic: [7.5, 9],
+    decor: { runnerDrop: 2.5, runnerMargin: 0.75, runnerFoldR: 0.18, runnerCurl: 0.2, flameLightIn: 25, frameBar: 0.8, frameT: 0.6, frameLean: 7, pic: [7, 9], omPic: [7.5, 9],
       murtiH: 5.2, smallMurtiH: 3.4, diyaR: 1.15, vilakkuH: 9, lotusH: 3.6, plateR: 2.9, bellH: 3.6, incenseL: 8, flameH: 0.95 } },
   bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 225], rot: 90,
     // bed item: steel sections (full_size_bedframe.jpg), headboard panel elevations, soft goods
