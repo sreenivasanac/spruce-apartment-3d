@@ -336,10 +336,10 @@ export const FURNITURE = {
     duvet: { th: 1.4, side: 11.5, foot: 10, foldAt: 27, foldW: 11, hemR: 0.4, wrinkle: 0.22, flare: 0.5, cornerSag: 0.25 },
     pillow: { w: 26, d: 19.5, h: 7, waist: 0.05, tiltDeg: 11, gap: 0.4, sink: 0.4 } },
   // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
-  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, pos: [135.7, 238], rot: -90 }, // 47" user-given
-  wifeChair: { module: 'chair', w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [108, 238], rot: 90 },
+  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, bandT: 0.04, drawerEase: 0.0625, sleeve: { w: 14.5, d: 10.5, h: 0.9, x: -9, z: 1.5, yawDeg: 6 }, pos: [135.7, 238], rot: -90 }, // 47" user-given
+  wifeChair: { module: 'chair', w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [115, 244], rot: 90 }, // pushed in (seat front ~3in under the top; arm tops 25.5 clear the 27.6 underside), centred on the knee-hole between ALEX (y<=229.25) and the legs (y~258)
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
-  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, frameW: 1.55, panelR: 1.0, handle: { w: 1.05, h: 3.6, proj: 0.45, bar: 0.22 }, ribPitch: 1.3, ribW: 0.5, ribT: 0.14, rodDia: 0.75, rodDrop: 2.6, openDeg: 105, pos: [16.1, 279.5], rot: 90 },
+  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 25.5, 12], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, stileW: 1.55, railW: 2.0, beadW: 0.35, beadH: 0.15, panelR: 1.0, handle: { w: 1.3, h: 3.8, proj: 0.45, bar: 0.32, r: 0.25, over: 0.05 }, ribPitch: 1.8, ribW: 0.6, ribT: 0.08, seamGap: 0.45, lidT: 0.3, lidOver: 0.2, postW: 1.0, rodDia: 0.75, rodDrop: 2.6, hangerDrop: 2.2, openDeg: 105, pos: [16.5, 279.5], rot: 90 },
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.

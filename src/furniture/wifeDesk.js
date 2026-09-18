@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { FURNITURE, m } from '../dimensions.js';
-import { MAT } from '../materials.js';
+import { MAT, rng } from '../materials.js';
 import { cyl, group } from '../lib/build.js';
 
 const at = (o, x, y, z) => (o.position.set(m(x), m(y), m(z)), o);
@@ -27,7 +27,7 @@ function drawerFront(w, h, A, mat, name) {
   s.lineTo(-sw * 0.3, h - sh);
   s.bezierCurveTo(-sw * 0.62, h - sh, -sw * 0.72, h, -sw, h);
   s.lineTo(-w / 2, h); s.closePath();
-  const bev = 0.03;
+  const bev = A.ease; // 1/16in eased foil edge
   const g = new THREE.ExtrudeGeometry(s, { depth: A.frontT - 2 * bev, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelOffset: -bev, bevelSegments: 2, curveSegments: 16 });
   g.translate(0, 0, bev);
   g.scale(m(1), m(1), m(1));
@@ -40,11 +40,25 @@ function drawerFront(w, h, A, mat, name) {
 export function build() {
   const D = FURNITURE.wifeDesk, A = D.alex;
   const underTop = D.h - D.topT;
-  const white = MAT.cabinet.clone(); Object.assign(white, { roughness: 0.42, name: 'ikea-white-foil' }); white.color.set(0xf4f3f0);
+  // paper-foil micro texture: faint roughness mottling so the big white planes don't read as a flat CG slab
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(256, 256), r = rng(47);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 150 + r() * 70; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  ctx.putImageData(img, 0, 0);
+  const foil = new THREE.CanvasTexture(c); foil.wrapS = foil.wrapT = THREE.RepeatWrapping; foil.repeat.set(3, 3);
+  const white = MAT.cabinet.clone(); Object.assign(white, { roughness: 0.5, roughnessMap: foil, bumpMap: foil, bumpScale: 0.06, name: 'ikea-white-foil' }); white.color.set(0xf4f3f0);
+  const band = white.clone(); Object.assign(band, { roughness: 0.3, roughnessMap: null, bumpMap: null, name: 'ikea-white-edgeband' }); band.color.set(0xecebe6); // ABS edge band: glossier, a hair darker -> visible seam
   const legWhite = MAT.whitePlastic.clone(); Object.assign(legWhite, { roughness: 0.35, name: 'adils-white-powdercoat' });
   const shadow = MAT.blackPlastic.clone(); Object.assign(shadow, { roughness: 1, name: 'alex-drawer-void' }); shadow.color.set(0x2a2a2c);
 
-  const top = at(rbox(D.w, D.topT, D.d, D.edgeR, white, 'wifeDesk:top'), 0, underTop + D.topT / 2, 0);
+  // top = foil-faced core + edge band all round; the band stops bandT short of the faces so the seam line shows
+  const top = at(group('wifeDesk:top',
+    rbox(D.w - 2 * D.bandT, D.topT, D.d - 2 * D.bandT, D.edgeR, white, 'wifeDesk:top:core'),
+    rbox(D.w, D.topT - 2 * D.bandT, D.d, D.bandT, band, 'wifeDesk:top:edgeband')), 0, underTop + D.topT / 2, 0);
+  // dressing from IMG_3955: navy laptop sleeve with a zip line, lying slightly askew on the ALEX end
+  const S = D.sleeve, navy = MAT.fabricGray.clone(); Object.assign(navy, { roughness: 0.95, name: 'sleeve-navy' }); navy.color.set(0x1c2a4a);
+  const sleeve = group('wifeDesk:sleeve', rbox(S.w, S.h, S.d, S.h * 0.45, navy, 'wifeDesk:sleeve:body'), rbox(S.w + 0.04, 0.12, S.d + 0.04, 0.05, MAT.blackPlastic, 'wifeDesk:sleeve:zip'));
+  at(sleeve, S.x, D.h + S.h / 2, S.z).rotation.y = THREE.MathUtils.degToRad(S.yawDeg);
 
   // ---- ALEX: carcass of 5 panels, drawer fronts inset between the sides; stands on thin felt pads that make up 27.5 -> underTop
   const padH = underTop - A.h;
@@ -60,7 +74,7 @@ export function build() {
   alex.add(at(rbox(innerW, voidH, A.panelT / 4, 0.01, shadow, 'wifeDesk:alex:void'), 0, A.plinthH + voidH / 2, A.d / 2 - A.frontT - A.gap - A.panelT / 8));
   const fh = (voidH - (A.drawers + 1) * A.gap) / A.drawers, fw = innerW - 2 * A.gap;
   for (let i = 0; i < A.drawers; i++) {
-    alex.add(at(drawerFront(fw, fh, A, white, `wifeDesk:alex:drawer${i + 1}`), 0, A.plinthH + A.gap + i * (fh + A.gap), A.d / 2 - A.frontT));
+    alex.add(at(drawerFront(fw, fh, { ...A, ease: D.drawerEase }, white, `wifeDesk:alex:drawer${i + 1}`), 0, A.plinthH + A.gap + i * (fh + A.gap), A.d / 2 - A.frontT));
   }
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) { // felt pads
     const p = at(cyl(0.5, padH, MAT.fabricGray, 'wifeDesk:alex:pad', 12), sx * (A.w / 2 - 1.2), -padH / 2, sz * (A.d / 2 - 1.5));
@@ -79,5 +93,5 @@ export function build() {
     legs.add(at(cyl(D.plateDia / 2, D.plateT, legWhite, `wifeDesk:plate${i + 1}`, 32), lx, underTop - D.plateT / 2, z));
   });
 
-  return group('wifeDesk', top, alex, legs);
+  return group('wifeDesk', top, sleeve, alex, legs);
 }
