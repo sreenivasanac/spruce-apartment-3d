@@ -48,13 +48,18 @@ function canvasMap(w, h, draw) {
   return t;
 }
 
+/** Small round GE badge: dark disc in a thin chrome ring, axis = local z, back at z. */
+function geBadge(dia, cx, cy, z, name) {
+  return group(name, bar(dia / 2, 0.1, 'z', MAT.chrome, cx, cy, z + 0.05), bar(dia / 2 * 0.82, 0.12, 'z', MAT.applianceCase, cx, cy, z + 0.06));
+}
+
 /** Brushed bar pull on two posts. Flagged for merging into one mesh (see mergeFlagged). */
 function pull(vertical, cx, cy, zFace) {
   const P = K.pull, r = P.dia / 2, z = zFace + P.standoff - r;
-  const parts = [bar(r, K.pullL, vertical ? 'y' : 'x', MAT.nickel, cx, cy, z)];
+  const parts = [bar(r, K.pullL, vertical ? 'y' : 'x', MAT.kitchenPull, cx, cy, z)];
   for (const s of [-1, 1]) {
     const o = s * (K.pullL / 2 - P.postInset);
-    parts.push(bar(r * 0.8, P.standoff - r, 'z', MAT.nickel, cx + (vertical ? 0 : o), cy + (vertical ? o : 0), zFace + (P.standoff - r) / 2));
+    parts.push(bar(r * 0.8, P.standoff - r, 'z', MAT.kitchenPull, cx + (vertical ? 0 : o), cy + (vertical ? o : 0), zFace + (P.standoff - r) / 2));
   }
   parts.forEach((p) => { p.userData.merge = 'kitchen:pulls'; });
   return parts;
@@ -66,12 +71,12 @@ function pull(vertical, cx, cy, zFace) {
  */
 function cabinet(name, w, h, d, rows, openTop = false) {
   const g = group(name);
-  const cd = d - K.doorT, pt = K.doorT;
+  const cd = d - K.doorT, pt = K.doorT, cb = cd - K.linerBack; // cb = carcass front, recessed behind the door backs
   if (openTop) { // sink base: panels only, so the bowl can hang inside and be seen through the counter cut-out
-    g.add(group(`${name}:carcass`, [-1, 1].map((s) => lb(pt, h, cd - 0.05, MAT.cabinet, null, s * (w - pt) / 2, 0, 0)),
-      lb(w - 2 * pt, pt, cd - 0.05, MAT.cabinet, null, 0, 0, 0), lb(w - 2 * pt, h - pt, pt, MAT.cabinet, null, 0, pt, 0)));
-  } else g.add(lb(w, h, cd - 0.05, MAT.cabinet, `${name}:carcass`, 0, 0, 0));
-  const liner = lb(w - 0.1, h - 0.1, 0.05, MAT.cabinetGap, null, 0, 0.05, cd - 0.05); // reveal shadow liner
+    g.add(group(`${name}:carcass`, [-1, 1].map((s) => lb(pt, h, cb, MAT.cabinet, null, s * (w - pt) / 2, 0, 0)),
+      lb(w - 2 * pt, pt, cb, MAT.cabinet, null, 0, 0, 0), lb(w - 2 * pt, h - pt, pt, MAT.cabinet, null, 0, pt, 0)));
+  } else g.add(lb(w, h, cb, MAT.cabinet, `${name}:carcass`, 0, 0, 0));
+  const liner = lb(w - 0.2, h - 0.2, 0.05, MAT.cabinetGap, null, 0, 0.1, cb); // reveal shadow liner on the carcass front, well behind the door faces
   liner.userData.merge = 'kitchen:reveal-liners'; g.add(liner);
   let top = h, i = 0;
   for (const row of rows) {
@@ -86,6 +91,10 @@ function cabinet(name, w, h, d, rows, openTop = false) {
         const py = row.pullAt === 'bottom' ? y0 + K.pull.end + K.pullL / 2 : y0 + row.h - K.pull.end - K.pullL / 2;
         g.add(...pull(true, px, py, d));
       }
+    }
+    if (y0 > 0.01) { // horizontal reveal under this row: dark fill just behind the faces, so the gap still reads as a shadow line from above (IMG_3948)
+      const fill = lb(w - K.reveal, K.reveal, K.doorT - 0.03, MAT.cabinetRevealFill, null, 0, y0 - K.reveal / 2, cd);
+      fill.userData.merge = 'kitchen:reveal-fills'; g.add(fill);
     }
     top = y0;
   }
@@ -126,10 +135,10 @@ function sink() {
   const S = K.sink, g = group('kitchen:sink'), lip = 0.25, wall = 0.08, top = K.counterH - K.counterT;
   const outer = roundRect(new THREE.Shape(), m(-S.w / 2 - lip), m(-S.d / 2 - lip), m(S.w + 2 * lip), m(S.d + 2 * lip), m(S.r));
   // bowl floor: baked contact-shadow gradient toward the walls + faint drain-ward streaks (IMG_3948)
-  const floorMat = MAT.sinkSteel.clone(); floorMat.name = 'sink-floor'; floorMat.color.set(0xffffff);
+  const floorMat = MAT.sinkSteel.clone(); floorMat.name = 'sink-floor'; floorMat.color.set(0xffffff); floorMat.emissive.set(0x8a8d90); floorMat.emissiveIntensity = 0.3; // dim IBL leaves an upward-facing metal floor near-black
   floorMat.map = canvasMap(256, 192, (c, W, H) => {
-    c.fillStyle = '#5f6268'; c.fillRect(0, 0, W, H);
-    for (let i = 0; i < 26; i++) { c.strokeStyle = `rgba(0,0,0,${0.035 * (1 - i / 26)})`; c.lineWidth = 2 * (26 - i); c.strokeRect(0, 0, W, H); }
+    c.fillStyle = '#c6c8cb'; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < 26; i++) { c.strokeStyle = `rgba(0,0,0,${0.05 * (1 - i / 26)})`; c.lineWidth = 2 * (26 - i); c.strokeRect(0, 0, W, H); }
     for (let i = 0; i < 90; i++) { c.strokeStyle = `rgba(${i % 2 ? '255,255,255' : '40,40,40'},0.022)`; c.beginPath(); c.moveTo(W / 2, H / 2); c.lineTo((i * 97) % W, i % 2 ? 0 : H); c.stroke(); }
   });
   const floor = new THREE.Mesh(new THREE.ShapeGeometry(outer, 10), floorMat);
@@ -146,25 +155,27 @@ function sink() {
 }
 
 function faucet() {
-  const F = K.faucet, g = group('kitchen:faucet');
-  const col = cyl(F.colR, F.colH, MAT.chrome, 'kitchen:faucet:column', 32); col.position.y = m(F.colH / 2);
-  const flange = cyl(F.colR + 0.3, 0.3, MAT.chrome); flange.position.y = m(0.15);
-  const head = cyl(F.colR + 0.08, F.headH, MAT.chrome, null, 32); head.position.y = m(F.colH - F.headH / 2 + 0.01); // slightly fatter cartridge head
-  const capTop = new THREE.Mesh(new THREE.SphereGeometry(m(F.colR + 0.08), 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.chrome); capTop.scale.y = 0.2; capTop.position.y = m(F.colH);
-  // spout: short stub with a flat aerator end, swivelled toward the bowl (local -Z = plan -y) and a little to +x (IMG_3949)
-  const a = THREE.MathUtils.degToRad(F.spoutDropDeg), sp = cyl(F.spoutR, F.spoutL, MAT.chrome, 'kitchen:faucet:spout', 20);
+  const F = K.faucet, g = group('kitchen:faucet'), bodyH = F.colH - F.headH;
+  const col = cyl(F.colR, bodyH - 0.06, MAT.kitchenChrome, 'kitchen:faucet:column', 32); col.position.y = m((bodyH - 0.06) / 2);
+  const flange = cyl(F.colR + 0.12, 0.5, MAT.kitchenChrome, null, 32); flange.position.y = m(0.25);
+  const groove = cyl(F.colR - 0.06, 0.1, MAT.blackPlastic); groove.position.y = m(bodyH); // shadow line under the rotating top cap (IMG_3949)
+  const head = cyl(F.colR, F.headH - 0.06, MAT.kitchenChrome, 'kitchen:faucet:cap', 32); head.position.y = m(F.colH - (F.headH - 0.06) / 2);
+  // side arm: short stub at mid-height ending in a large flat aerator disc, swivelled toward the bowl (local -Z = plan -y) and a little to +x
+  const a = THREE.MathUtils.degToRad(F.spoutDropDeg), sp = cyl(F.spoutR, F.spoutL, MAT.kitchenChrome, 'kitchen:faucet:spout', 24);
+  const end = cyl(F.spoutEndDia / 2, 0.3, MAT.kitchenChrome, null, 32); end.position.y = m(F.spoutL / 2); sp.add(end); // +Y of the rotated stub is its outer end
   sp.rotation.x = -(Math.PI / 2 - a); sp.position.set(0, -m(Math.sin(a) * F.spoutL / 2), -m(Math.cos(a) * F.spoutL / 2));
-  const swivel = group('', sp); swivel.rotation.y = -THREE.MathUtils.degToRad(F.swivelDeg); swivel.position.y = m(F.colH - F.headH - 1.2);
-  // lever: thin rod out of the head, sideways and slightly up
-  const lever = bar(0.17, F.leverL, 'x', MAT.chrome, F.colR + F.leverL / 2 - 0.1, F.colH - 0.9, 0); lever.rotation.z += 0.2;
-  g.add(col, flange, head, capTop, swivel, lever);
+  const swivel = group('', sp); swivel.rotation.y = -THREE.MathUtils.degToRad(F.swivelDeg); swivel.position.y = m(F.colH * F.spoutAt);
+  // lever: short stub out of the cap, sideways and slightly up
+  const lever = bar(F.leverDia / 2, F.leverL, 'x', MAT.kitchenChrome, F.colR + F.leverL / 2 - 0.1, F.colH - 0.8, 0, 'kitchen:faucet:lever'); lever.rotation.z += 0.3;
+  g.add(col, flange, groove, head, swivel, lever);
   place(g, K.sink.cx, F.y, K.counterH);
 
   const ag = group('kitchen:airgap');
-  const body = cyl(F.airGapR, F.airGapH, MAT.chrome, null, 24); body.position.y = m(F.airGapH / 2);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(m(F.airGapR), 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.chrome); dome.scale.y = 0.5; dome.position.y = m(F.airGapH);
-  const slot = lb(0.9, 0.5, 0.1, MAT.blackPlastic, null, 0, 0.5, -F.airGapR - 0.02);
-  ag.add(body, dome, slot);
+  const gasket = cyl(F.airGapR + 0.12, 0.15, MAT.whitePlastic, null, 24); gasket.position.y = m(0.075);
+  const body = cyl(F.airGapR, F.airGapH, MAT.kitchenChrome, null, 24); body.position.y = m(F.airGapH / 2 + 0.1);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(m(F.airGapR), 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.kitchenChrome); dome.scale.y = 0.35; dome.position.y = m(F.airGapH + 0.1);
+  const slot = lb(0.9, 0.5, 0.1, MAT.blackPlastic, null, 0, 0.6, -F.airGapR - 0.02);
+  ag.add(gasket, body, dome, slot);
   place(ag, K.sink.cx + F.airGapDx, F.y, K.counterH);
   return [g, ag];
 }
@@ -203,8 +214,8 @@ function fridge() {
   g.add(tubeHandle([[hx, hy0, zf - 0.3], [hx, hy0 + 1.2, zf + o * 0.8], [hx, hy0 + 3, zf + o], [hx, hy1 - 3, zf + o], [hx, hy1 - 1.2, zf + o * 0.8], [hx, hy1, zf - 0.3]], D.handleR, 'kitchen:fridge:handle-door'));
   const fy = D.split - 3.2, fw = D.freezerHandleW / 2, fz = (x) => front(x);
   g.add(tubeHandle([[-fw, fy, fz(fw) - 0.3], [-fw + 1.2, fy, fz(fw) + o * 0.8], [-fw + 3.5, fy, fz(fw - 3.5) + o], [0, fy, fz(0) + o], [fw - 3.5, fy, fz(fw - 3.5) + o], [fw - 1.2, fy, fz(fw) + o * 0.8], [fw, fy, fz(fw) - 0.3]], D.handleR, 'kitchen:fridge:handle-freezer'));
-  const bx = -w / 2 + 4.5, badge = bar(D.badge / 2, 0.12, 'z', MAT.chrome, bx, caseH - 6.5, front(bx) - 0.02, 'kitchen:fridge:badge');
-  g.add(badge);
+  const bx = -w / 2 + 4.5;
+  g.add(geBadge(D.badge, bx, caseH - 6.5, front(bx) - 0.08, 'kitchen:fridge:badge'));
   return place(g, F.x0 + w / 2, F.y0, 0, 0);
 }
 
@@ -212,23 +223,37 @@ function range() {
   const R = K.range, D = K.rangeD, g = group('kitchen:range'), w = R.w, zf = D.bodyD;
   const topY = R.h - D.glassT;
   g.add(lb(w, topY - 1, D.bodyD, MAT.applianceCase, 'kitchen:range:body', 0, 1, 0));
-  g.add(rb(w, D.glassT, K.counterD + 0.4, 0.15, MAT.blackGlass, 'kitchen:range:cooktop', 0, topY, 0));
-  const rings = D.burners.map(([x, z, r]) => { const ring = new THREE.Mesh(new THREE.RingGeometry(m(r - 0.12), m(r), 48), MAT.burner); ring.rotation.x = -Math.PI / 2; ring.position.set(m(x), m(R.h + 0.02), m(z)); return ring; });
+  g.add(rb(w, D.glassT, K.counterD + 0.4, 0.15, MAT.cooktopGlass, 'kitchen:range:cooktop', 0, topY, 0));
+  const rings = D.burners.map(([x, z, r]) => { const ring = new THREE.Mesh(new THREE.RingGeometry(m(r - 0.1), m(r), 64), MAT.burnerLine); ring.rotation.x = -Math.PI / 2; ring.position.set(m(x), m(R.h + 0.02), m(z)); return ring; });
   g.add(group('kitchen:range:burners', rings));
   // front: storage drawer, oven door w/ window + bar handle, plain manifold strip under the cooktop lip
   g.add(rb(w, D.drawerTop - 1.5, D.doorT, 0.25, MAT.applianceSteel, 'kitchen:range:drawer', 0, 1.5, zf));
   g.add(rb(w, D.doorTop - D.drawerTop - 0.25, D.doorT, 0.25, MAT.applianceSteel, 'kitchen:range:door', 0, D.drawerTop + 0.25, zf));
   g.add(lb(w, topY - D.doorTop - 0.25, D.doorT - 0.6, MAT.applianceSteel, 'kitchen:range:manifold', 0, D.doorTop + 0.25, zf));
-  const wy = (D.drawerTop + D.doorTop) / 2 - 1.5;
-  g.add(rb(D.window[0], D.window[1], 0.1, 0.04, MAT.blackGlass, 'kitchen:range:window', 0, wy - D.window[1] / 2, zf + D.doorT - 0.04));
+  // oven glass fills the door between the handle and a stainless band that carries the badge (IMG_3946)
+  const wy = D.drawerTop + 0.25 + D.band, glass = MAT.ovenGlass.clone(); glass.name = 'oven-window'; glass.color.set(0xffffff);
+  glass.map = canvasMap(256, 128, (c, W, H) => { // faint interior: dark cavity + rack lines
+    const gr = c.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#0b0b0c'); gr.addColorStop(0.5, '#1b1c1e'); gr.addColorStop(1, '#0d0d0e'); c.fillStyle = gr; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(120,120,125,0.22)'; for (const y of [0.42, 0.66]) { c.lineWidth = 1.5; c.beginPath(); c.moveTo(W * 0.08, H * y); c.lineTo(W * 0.92, H * y); c.stroke(); }
+    c.strokeStyle = 'rgba(0,0,0,0.9)'; c.lineWidth = 10; c.strokeRect(0, 0, W, H);
+  });
+  const win = new THREE.Mesh(new THREE.PlaneGeometry(m(D.window[0]), m(D.window[1])), glass); win.name = 'kitchen:range:window';
+  win.position.set(0, m(wy + D.window[1] / 2), m(zf + D.doorT + 0.02)); g.add(win);
   const hy = D.doorTop - 2.2, hz = zf + D.doorT + D.handleOff - D.handleDia / 2;
   g.add(bar(D.handleDia / 2, w - 3, 'x', MAT.applianceSteel, 0, hy, hz, 'kitchen:range:handle'));
   for (const s of [-1, 1]) g.add(bar(D.handleDia / 2 * 0.9, D.handleOff, 'z', MAT.applianceSteel, s * (w / 2 - 3), hy, zf + D.doorT + D.handleOff / 2 - 0.2));
-  g.add(bar(0.5, 0.1, 'z', MAT.chrome, 0, (1.5 + D.drawerTop) / 2, zf + D.doorT, 'kitchen:range:badge'));
-  // backguard with clock panel + 4 knobs (knobs live on the backguard on this GE model — IMG_3946)
-  g.add(rb(w, R.backguardH, D.backguardD, 0.3, MAT.applianceSteel, 'kitchen:range:backguard', 0, R.h, 0));
-  g.add(lb(D.display[0], D.display[1], 0.1, MAT.blackGlass, 'kitchen:range:display', 0, R.h + (R.backguardH - D.display[1]) / 2, D.backguardD - 0.04));
-  const knobs = [-12.2, -8.6, 8.6, 12.2].map((x) => bar(D.knobDia / 2, D.knobL, 'z', MAT.blackPlastic, x, R.h + R.backguardH / 2, D.backguardD + D.knobL / 2));
+  g.add(geBadge(1, 0, D.drawerTop + 0.25 + D.band / 2, zf + D.doorT - 0.04, 'kitchen:range:badge'));
+  // backguard: glossy black glass face in a stainless shell (end caps + top edge), centred display, 4 black knobs on stainless skirts (IMG_3946/3933)
+  g.add(rb(w, R.backguardH, D.backguardD - 0.1, 0.3, MAT.applianceSteel, 'kitchen:range:backguard', 0, R.h, 0));
+  g.add(lb(w - 2 * D.capT, R.backguardH - D.capT, 0.12, MAT.cooktopGlass, 'kitchen:range:backguard-glass', 0, R.h, D.backguardD - 0.12));
+  const disp = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 0.15, emissive: 0xffffff, emissiveIntensity: 0.35, name: 'range-display', emissiveMap: canvasMap(128, 32, (c, W, H) => {
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H); c.fillStyle = '#2f8f86'; c.font = 'bold 22px monospace'; c.textAlign = 'center'; c.fillText('6:18', W / 2, 24);
+  }) });
+  const dp = new THREE.Mesh(new THREE.PlaneGeometry(m(D.display[0]), m(D.display[1])), disp); dp.name = 'kitchen:range:display';
+  dp.position.set(0, m(R.h + R.backguardH / 2), m(D.backguardD + 0.01)); g.add(dp);
+  const ky = R.h + R.backguardH / 2, knobs = [-12.2, -8.6, 8.6, 12.2].flatMap((x) => [
+    bar(D.knobDia / 2 + D.knobSkirt, 0.3, 'z', MAT.applianceSteel, x, ky, D.backguardD + 0.15),
+    bar(D.knobDia / 2, D.knobL, 'z', MAT.blackPlastic, x, ky, D.backguardD + D.knobL / 2)]);
   g.add(group('kitchen:range:knobs', knobs));
   const [a, b] = K.southRun.range;
   return place(g, X.southInt, (a + b) / 2, 0, -90);
@@ -238,15 +263,25 @@ function microwave() {
   const M = K.microwave, D = K.mwD, g = group('kitchen:microwave'), w = M.w, zf = M.d - 0.6;
   g.add(lb(w, M.h, zf, MAT.applianceCase, 'kitchen:microwave:body', 0, 0, 0));
   g.add(lb(w, D.ventH, 0.5, MAT.blackPlastic, 'kitchen:microwave:vent', 0, M.h - D.ventH, zf));
+  const louvre = new THREE.MeshStandardMaterial({ roughness: 0.5, name: 'microwave-louvres', map: canvasMap(256, 32, (c, W, H) => {
+    c.fillStyle = '#060606'; c.fillRect(0, 0, W, H); c.fillStyle = '#2c2c2e'; for (let i = 0; i < 5; i++) c.fillRect(6, 3 + i * 6, W - 12, 2.5);
+  }) });
+  const lv = new THREE.Mesh(new THREE.PlaneGeometry(m(w - 0.4), m(D.ventH - 0.3)), louvre); lv.position.set(0, m(M.h - D.ventH / 2), m(zf + 0.51)); g.add(lv);
   const doorH = M.h - D.ventH - 0.15, dcx = -w / 2 + D.doorW / 2;
   g.add(rb(D.doorW, doorH, 0.6, 0.2, MAT.applianceSteel, 'kitchen:microwave:door', dcx, 0, zf));
-  g.add(lb(D.window[0], D.window[1], 0.08, MAT.blackGlass, 'kitchen:microwave:window', dcx - 1, (doorH - D.window[1]) / 2, M.d - 0.04));
-  const pw = w - D.doorW - 0.15, keypad = new THREE.MeshStandardMaterial({ roughness: 0.35, name: 'microwave-keypad', map: canvasMap(128, 320, (c, W, H) => {
-    c.fillStyle = '#0c0c0d'; c.fillRect(0, 0, W, H);
-    c.fillStyle = '#0f2a18'; c.fillRect(14, 16, W - 28, 40); c.fillStyle = '#6dffa0'; c.font = 'bold 26px monospace'; c.fillText('6:18', 28, 46);
-    c.fillStyle = '#3a3a3e'; for (let r = 0; r < 8; r++) for (let k = 0; k < 3; k++) c.fillRect(14 + k * 35, 74 + r * 29, 29, 21);
-    c.fillStyle = '#9a9aa0'; c.font = '9px sans-serif'; for (let r = 0; r < 8; r++) for (let k = 0; k < 3; k++) c.fillText(r > 2 && r < 6 ? String((r - 3) * 3 + k + 1) : '—', 25 + k * 35, 88 + r * 29);
-  }) });
+  // glass reaches almost to the left edge behind a slim stainless frame; the handle sits on the wider right stile
+  g.add(lb(D.window[0], D.window[1], 0.08, MAT.ovenGlass, 'kitchen:microwave:window', -w / 2 + 1 + D.window[0] / 2, (doorH - D.window[1]) / 2 + 0.4, M.d - 0.04));
+  g.add(geBadge(D.badge, -w / 2 + 2.2, 1.1, M.d - 0.06, 'kitchen:microwave:badge'));
+  const pw = w - D.doorW - 0.15, cw = 128, ch = Math.round(cw * doorH / pw), dw = D.display[0] / pw * cw, dhp = D.display[1] / doorH * ch, dy = ch * 0.07;
+  const art = (glow) => canvasMap(cw, ch, (c, W, H) => {
+    c.fillStyle = glow ? '#000' : '#0b0b0c'; c.fillRect(0, 0, W, H);
+    if (!glow) { c.fillStyle = '#07120f'; c.fillRect((W - dw) / 2, dy, dw, dhp); }
+    c.fillStyle = glow ? '#3fae96' : '#1d4a40'; c.font = `bold ${Math.round(dhp * 0.8)}px monospace`; c.textAlign = 'center'; c.fillText('6:18', W / 2, dy + dhp * 0.8);
+    if (glow) return;
+    const k0 = dy + dhp + 14, kw = (W - 28) / 4, kh = (H - k0 - 12) / 11; // fine low-contrast membrane keypad
+    for (let r = 0; r < 11; r++) for (let k = 0; k < 4; k++) { c.fillStyle = '#19191b'; c.fillRect(14 + k * kw + 1.5, k0 + r * kh + 1.5, kw - 3, kh - 3); c.fillStyle = '#4a4a4f'; c.fillRect(14 + k * kw + kw * 0.3, k0 + r * kh + kh * 0.45, kw * 0.4, 1.5); }
+  });
+  const keypad = new THREE.MeshStandardMaterial({ roughness: 0.3, name: 'microwave-keypad', map: art(false), emissive: 0xffffff, emissiveMap: art(true), emissiveIntensity: 0.35 });
   const pad = new THREE.Mesh(new THREE.PlaneGeometry(m(pw), m(doorH)), keypad); pad.position.set(m(w / 2 - pw / 2), m(doorH / 2), m(M.d + 0.005)); pad.name = 'kitchen:microwave:controls';
   g.add(lb(pw, doorH, 0.6, MAT.blackPlastic, null, w / 2 - pw / 2, 0, zf), pad);
   const hx = -w / 2 + D.doorW - 1.2, hz = M.d + D.handleOff - D.handleDia / 2;
@@ -262,7 +297,13 @@ function dishwasher() {
   g.add(lb(D.w, D.doorBottom - 0.5, 0.5, MAT.blackPlastic, 'kitchen:dishwasher:kick', 0, 0.5, K.baseD - K.kickRecess - 0.5));
   g.add(rb(D.w, top - D.controlH - D.doorBottom, 1.5, 0.2, MAT.applianceSteel, 'kitchen:dishwasher:door', 0, D.doorBottom, K.baseD - 1.5));
   g.add(rb(D.w, D.controlH - 0.1, 1.5, 0.2, MAT.blackPlastic, 'kitchen:dishwasher:controls', 0, top - D.controlH + 0.1, K.baseD - 1.5));
-  g.add(lb(7, 1.1, 0.1, MAT.cabinetGap, 'kitchen:dishwasher:pocket-handle', 0, top - D.controlH / 2 - 0.9, K.baseD - 0.04));
+  const [pkW, pkH] = D.pocket, marks = new THREE.MeshStandardMaterial({ roughness: 0.4, transparent: true, name: 'dishwasher-control-marks', map: canvasMap(512, 32, (c, W, H) => {
+    c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(150,150,155,0.55)'; for (let i = 0; i < 9; i++) { c.fillRect(150 + i * 38, 10, 14, 3); c.beginPath(); c.arc(157 + i * 38, 22, 2, 0, 7); c.fill(); }
+  }) });
+  const mk = new THREE.Mesh(new THREE.PlaneGeometry(m(D.w - 2), m(1.2)), marks); mk.position.set(0, m(top - 1.2), m(K.baseD + 0.01)); g.add(mk);
+  g.add(geBadge(0.8, -D.w / 2 + 2.2, top - 1.3, K.baseD - 0.06, 'kitchen:dishwasher:badge'));
+  g.add(lb(pkW, pkH, 0.1, MAT.blackPlastic, 'kitchen:dishwasher:pocket-handle', 0, top - D.controlH + 0.5, K.baseD - 0.04)); // pocket shadow at the strip's lower edge (IMG_3933)
+  g.add(lb(D.w - 0.6, 0.2, 0.06, MAT.cabinetGap, null, 0, top - D.controlH - 0.1, K.baseD - 0.03)); // dark seam where the door tucks under the control strip
   return place(g, (a + b) / 2, PONY.c, 0, 180);
 }
 
@@ -275,13 +316,20 @@ function outlets() {
     for (const y of [48, 112]) { c.fillRect(42, y, 5, 16); c.fillRect(63, y, 5, 13); c.beginPath(); c.arc(55, y + 27, 4.5, 0, 7); c.fill(); }
     c.beginPath(); c.arc(55, 90, 3, 0, 7); c.fill();
   }) });
-  return O.southY.map((y, i) => {
-    const b = box(pt, ph, pw, [MAT.whitePlastic, mat, MAT.whitePlastic, MAT.whitePlastic, MAT.whitePlastic, MAT.whitePlastic], `kitchen:outlet-${i}`);
+  const W6 = Array(6).fill(MAT.whitePlastic), faces = (f) => W6.map((w, i) => (i === f ? mat : w));
+  const south = O.southY.map((y, i) => {
+    const b = box(pt, ph, pw, faces(1), `kitchen:outlet-${i}`);
     b.geometry.attributes.uv.array.set([0, 1, 1, 1, 0, 0, 1, 0], 8); // -x face (toward the room): full 0..1 UVs for the plate art
     b.position.set(m(X.southInt - pt / 2), m(O.elev), m(y));
-    b.castShadow = false;
     return b;
   });
+  const east = O.eastX.map((x, i) => {
+    const b = box(pw, ph, pt, faces(4), `kitchen:outlet-e${i}`);
+    b.geometry.attributes.uv.array.set([0, 1, 1, 1, 0, 0, 1, 0], 32); // +z face (plan +y, toward the room)
+    b.position.set(m(x), m(O.elev), m(Y.eastInt + pt / 2));
+    return b;
+  });
+  return [...south, ...east].map((b) => { b.castShadow = false; return b; });
 }
 
 // ------------------------------------------------------------------ assembly

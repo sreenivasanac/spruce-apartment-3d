@@ -192,16 +192,16 @@ export const KITCHEN = {
   peninsula: { dw: [226, 250], sinkBase: [250, 280], corner: [280, 310.5], overhang: 1.5 },
   sink: { w: 21, d: 16, depth: 8, cx: 265, cy: 121, r: 2.75 },
   // --- detail sizes (kitchen builder) ---
-  doorT: 0.75, reveal: 0.125, drawerH: 6, kickRecess: 3, edgeR: 0.12, splashT: 0.75,
+  doorT: 0.75, reveal: 0.15, linerBack: 0.3, drawerH: 6, kickRecess: 3, edgeR: 0.12, splashT: 0.75,
   pull: { dia: 0.5, standoff: 1.25, postInset: 1, edge: 2, end: 2.25 }, // bar Ø, clear projection, post inset from bar end, from door edge, from door top/bottom
   upperCornerX: 298, upperFiller: 1.5, // S-wall uppers run past the peninsula corner (IMG_3932 left edge, IMG_3933, IMG_3948 top-left)
   southUppers: [[20, 31.8, 1, 'r'], [31.8, 55.5, 2], [85.5, 109.5, 2], [109.5, 128, 1, 'l']], // [y0, y1, doors, pullSide] (IMG_3946 door count)
   fridgeD: { caseD: 26.3, doorT: 3, bulge: 1.5, gap: 0.2, split: 27, grille: 3.5, hingeH: 0.75, handleR: 0.55, handleOff: 2.4, handleL: 25, freezerHandleW: 29, badge: 1.1 },
-  rangeD: { bodyD: 25, doorT: 2, glassT: 0.4, drawerTop: 11, doorTop: 33, window: [20, 11], handleDia: 1, handleOff: 2.3, backguardD: 2.5, knobDia: 1.9, knobL: 1.2, display: [9, 3], burners: [[-7.2, 7.5, 4.5], [7.2, 7.5, 3.2], [-7.2, 19, 3.2], [7.2, 19, 4.5]] }, // burners: [x, z from back, radius]
-  mwD: { doorW: 22.6, ventH: 1.3, window: [16, 8.5], handleDia: 0.9, handleL: 12, handleOff: 1.6 },
-  dwD: { w: 23.75, controlH: 5, doorBottom: 4.5 },
-  faucet: { y: 132, colR: 0.85, colH: 9.5, spoutR: 0.5, spoutL: 4.2, spoutDropDeg: 8, swivelDeg: 35, headH: 2.4, leverL: 2.2, airGapDx: -5.5, airGapR: 0.85, airGapH: 2.2 },
-  outlets: { elev: 44, plate: [2.75, 4.5, 0.25], southY: [42, 50, 93, 120] }, // on the S splash wall (IMG_3946, IMG_3933)
+  rangeD: { bodyD: 25, doorT: 2, glassT: 0.4, drawerTop: 11, doorTop: 33, band: 3.2, window: [25, 14.5], handleDia: 1, handleOff: 2.3, backguardD: 2.5, knobDia: 1.9, knobL: 1.2, knobSkirt: 0.25, capT: 0.4, display: [7, 1.6], burners: [[-7.2, 7.5, 4.5], [7.2, 7.5, 3.2], [-7.2, 19, 3.2], [7.2, 19, 4.5]] }, // burners: [x, z from back, radius]
+  mwD: { doorW: 24.3, ventH: 2, window: [19, 10], display: [2.2, 0.8], badge: 0.8, handleDia: 0.9, handleL: 12, handleOff: 1.6 },
+  dwD: { w: 23.75, controlH: 5, doorBottom: 4.5, pocket: [8, 1.3, 0.6] }, // pocket = recessed handle [w, h, depth]
+  faucet: { y: 132, colR: 0.7, colH: 10, spoutR: 0.55, spoutL: 3.6, spoutAt: 0.53, spoutEndDia: 1.6, spoutDropDeg: 4, swivelDeg: 35, headH: 2.4, leverL: 1.5, leverDia: 0.35, airGapDx: -5.5, airGapR: 0.85, airGapH: 2.2 },
+  outlets: { elev: 46, plate: [2.75, 4.5, 0.25], southY: [19, 47, 94, 120], eastX: [275] }, // S splash wall (IMG_3946, IMG_3933) + one on the E wall between fridge and corner (IMG_3947)
 };
 
 // ---------------------------------------------------------------- bath / vanity / laundry

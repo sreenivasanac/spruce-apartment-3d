@@ -164,9 +164,9 @@ const tex = {
   orangePeel: orangePeelMap(),
   stucco: canvasTex(512, (c, s) => noise(c, s, [128, 128, 128], 230, 6, 8), { srgb: false }),
   quartz: canvasTex(512, (ctx, s) => {
-    noise(ctx, s, [128, 126, 122], 14, 8);
+    noise(ctx, s, [141, 140, 137], 12, 8);
     const r = rng(9);
-    for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(${r() < 0.7 ? '176,174,168' : '96,94,92'},${0.18 + r() * 0.3})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 0.8 + r() * 2.6, 0.8 + r() * 1.8, r() * 3, 0, 7); ctx.fill(); } // kitchen item: finer, lower-contrast speckle per IMG_3949
+    for (let i = 0; i < 1500; i++) { ctx.fillStyle = `rgba(${r() < 0.85 ? '196,193,186' : '92,90,87'},${0.2 + r() * 0.35})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 0.8 + r() * 1.6, 0.7 + r() * 1.2, r() * 3, 0, 7); ctx.fill(); } // kitchen item: finer, lower-contrast speckle per IMG_3949
   }),
   brushed: canvasTex(256, (ctx, s) => { const r = rng(11); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},0.06)`; ctx.fillRect(r() * s, 0, 1, s); } }, { srgb: false }),
 };
@@ -195,7 +195,7 @@ export const MAT = {
   // kitchen / bath
   cabinet: std({ color: 0xf1f0ec, roughness: 0.55, name: 'cabinet-white-thermofoil' }),
   toeKick: std({ color: 0xd8d6d0, roughness: 0.7, name: 'toe-kick' }),
-  quartz: std({ map: tex.quartz, roughness: 0.28, name: 'quartz-gray' }),
+  quartz: std({ map: tex.quartz, color: 0xe4e4e2, roughness: 0.42, name: 'quartz-gray' }),
   stainless: std({ color: 0xb9bcbf, metalness: 1, roughness: 0.32, roughnessMap: tex.brushed, name: 'stainless-brushed' }),
   nickel: std({ color: 0xc4c2bd, metalness: 1, roughness: 0.38, name: 'brushed-nickel' }),
   chrome: std({ color: 0xffffff, metalness: 1, roughness: 0.06, name: 'chrome' }),
@@ -223,12 +223,12 @@ export const MAT = {
   brass: std({ color: 0xc9a24a, metalness: 1, roughness: 0.3, name: 'brass' }),
   flame: new THREE.MeshBasicMaterial({ color: 0xffc46b, name: 'flame' }),
   // kitchen item
-  cabinetDoor: std({ color: 0xf1f0ec, roughness: 0.5, bumpMap: canvasTex(256, (ctx, s) => { const r = rng(21); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},0.10)`; ctx.fillRect(r() * s, r() * s, 1 + r() * 2, 40 + r() * 120); } }, { repeat: [6, 3], srgb: false }), bumpScale: 0.25, name: 'cabinet-door-linear-thermofoil' }),
-  cabinetGap: std({ color: 0x2a2927, roughness: 1, name: 'cabinet-reveal-shadow' }),
+  cabinetDoor: std({ color: 0xeff0ef, roughness: 0.5, bumpMap: canvasTex(256, (ctx, s) => { const r = rng(21); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},0.10)`; ctx.fillRect(r() * s, r() * s, 1 + r() * 2, 40 + r() * 120); } }, { repeat: [6, 3], srgb: false }), bumpScale: 0.4, name: 'cabinet-door-linear-thermofoil' }),
+  cabinetGap: std({ color: 0x1c1b1a, roughness: 1, name: 'cabinet-reveal-shadow' }),
   applianceCase: std({ color: 0x2b2c2e, roughness: 0.6, metalness: 0.3, name: 'appliance-case-charcoal' }),
   burner: std({ color: 0x34343a, roughness: 0.3, name: 'cooktop-burner-print' }),
-  applianceSteel: std({ color: 0xd2d4d6, metalness: 0.8, roughness: 0.34, roughnessMap: tex.brushed, envMapIntensity: 3, name: 'appliance-stainless' }), // IBL is dim (0.35) so boost reflections to read as bright steel
-  sinkSteel: std({ color: 0x8e9194, metalness: 0.3, roughness: 0.5, envMapIntensity: 0.6, name: 'sink-stainless-satin' }), // mostly diffuse: the bowl sits right under the ceiling fixture and blows out as a mirror
+  applianceSteel: std({ color: 0xb6b8ba, metalness: 0.85, roughness: 0.5, roughnessMap: tex.brushed, envMapIntensity: 1.5, name: 'appliance-stainless' }), // IBL is dim (0.35) so boost reflections to read as bright steel
+  sinkSteel: std({ color: 0xd4d6d8, metalness: 0.9, roughness: 0.4, roughnessMap: tex.brushed, envMapIntensity: 4, name: 'sink-stainless-brushed' }),
   // mandir: cherry with grain along U (mandir.js maps U along each board's length), darkened antique brass, silk runner base
   cherryGrain: std({ map: cherryMap(), roughness: 0.5, name: 'cherry-grain' }),
   antiqueBrass: std({ color: 0x77582a, metalness: 1, roughness: 0.52, name: 'antique-brass' }),
@@ -279,5 +279,12 @@ export const MAT = {
   dryerGlass: phys({ color: 0x15181b, roughness: 0.08, transparent: true, opacity: 0.5, depthWrite: false, name: 'dryer-door-glass-smoke' }),
   washerGlass: phys({ color: 0x0a0a0c, roughness: 0.08, transparent: true, opacity: 0.8, depthWrite: false, name: 'washer-door-glass-dark' }),
   drumSteel: std({ color: 0x4a4d50, metalness: 0.7, roughness: 0.4, emissive: 0x8a8d90, emissiveIntensity: 0.4, side: THREE.DoubleSide, name: 'drum-stainless' }),
+  // kitchen item (fix round 1)
+  kitchenPull: std({ color: 0xcfd0d2, metalness: 1, roughness: 0.35, envMapIntensity: 1.5, name: 'kitchen-pull-brushed-nickel' }),
+  cooktopGlass: phys({ color: 0x0a0a0a, roughness: 0.06, metalness: 0, clearcoat: 0.3, specularIntensity: 0.4, envMapIntensity: 0.3, name: 'cooktop-black-ceramic' }), // low env: RoomEnvironment's light panels washed the top out gray
+  ovenGlass: phys({ color: 0x121314, roughness: 0.1, metalness: 0, clearcoat: 1, envMapIntensity: 0.6, name: 'oven-door-glass' }),
+  kitchenChrome: std({ color: 0xffffff, metalness: 1, roughness: 0.06, envMapIntensity: 2.5, name: 'kitchen-faucet-chrome' }), // MAT.chrome reads satin gray under the dim IBL
+  cabinetRevealFill: std({ color: 0x7d7b77, roughness: 1, name: 'cabinet-reveal-soft-shadow' }), // mid-gray: a near-black 0.15" line aliases into dashes at room distance (no MSAA behind the composer)
+  burnerLine: std({ color: 0x555555, roughness: 0.4, name: 'cooktop-burner-line' }),
 };
 export const TEX = tex;
