@@ -316,10 +316,10 @@ export const FURNITURE = {
     legTopR: 1.05, legBotR: 0.55, footR: 1.25, footT: 0.3, stayR: 0.4, hingePlate: { w: 1.5, l: 6, t: 0.15 }, linenTile: 4 },
   // rot -90: the table's front (+Z, the side the top lifts toward) faces the futon sitter (plan -x)
   liftTop: { w: 41, d: 19.5, h: 14.5, legH: 6, liftRise: 7.5, liftFwd: 6, marbleW: 16.5, pos: [209, 222], rot: -90, // w/d user-given; h ASSUMED from lift_top1/2.jpg proportions (F2); ~13" knee gap to the futon front
-    topT: 0.7, topOver: 0.5, panelT: 0.9, fasciaT: 0.6, fasciaInset: 0.25, topGap: 0.08, edgeR: 0.04, cornerR: 0.1, plankW: 6.5, seamW: 0.03,
+    topT: 0.7, topOver: 0.5, panelT: 0.9, fasciaT: 0.6, fasciaInset: 0.1, fasciaPlankW: 7.2, topGap: 0.08, edgeR: 0.04, cornerR: 0.1, plankW: 6.5, seamW: 0.03,
     leg: { topR: 0.85, botR: 0.65, inset: 2.2, splayDeg: 3, centreR: 0.4, footH: 0.25 },
-    mech: { closedDeg: 8, armW: 0.8, armT: 0.14, armGap: 6, frontPivotZ: 7.2, railW: 0.5, railH: 0.8, plateT: 0.12, plateH: 1.8, plateL: 12, pinR: 0.22, barR: 0.2,
-      spring: { bodyR: 0.36, rodR: 0.15, along: 5, baseBack: 5, baseDrop: 4 }, seconds: 0.9 } },
+    mech: { closedDeg: 8, armW: 0.8, armT: 0.14, armGap: 6, frontPivotZ: 7.2, railW: 0.5, railH: 0.8, plateT: 0.12, plateH: 1.8, plateL: 12, pinR: 0.22, barR: 0.2, barAlong: 0.2, knuckle: [1.2, 1.4, 1.2],
+      spring: { bodyR: 0.36, rodR: 0.15, along: 2.5, baseBack: 8, baseDrop: 2 }, seconds: 0.9 } },
   mandir: { w: 29.5, d: 13, h: 71, baseH: 25.5, pos: [188, 13.1], rot: 0, // bookcase, ASSUMED Sauder-style 5-shelf w/ doors
     // carcass details scaled off bookcase.jpg (w/h/d are OVERALL incl. cornice overhang)
     corniceH: 4.75, corniceSteps: [[0.9, 0.25], [0.7, 0.5], [0.65, 0.7], [2.5, 1]], corniceOver: 1, sideT: 1.75, backT: 0.25, topT: 0.75,

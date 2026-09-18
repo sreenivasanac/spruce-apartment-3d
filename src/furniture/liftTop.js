@@ -41,8 +41,8 @@ function valueNoise(r, gx, gy) {
 const PLANKS = 3, RINGS = 32;
 function drawWalnut(ctx, W, H, D) {
   const r = rng(41), img = ctx.createImageData(W, H), px = img.data, ph = H / PLANKS, ppi = ph / D.plankW;
-  const light = [112, 78, 57], dark = [60, 39, 28]; // cool mid-brown, soft contrast (lift_top1.jpg)
-  const warp = valueNoise(r, 10, 9), fibre = valueNoise(r, 24, 400), blotch = valueNoise(r, 5, 6);
+  const light = [108, 80, 62], dark = [56, 40, 31]; // cool chocolate brown (lift_top1.jpg)
+  const warp = valueNoise(r, 10, 9), fibre = valueNoise(r, 24, 400), fibre2 = valueNoise(r, 40, 900), blotch = valueNoise(r, 5, 6);
   for (let p = 0; p < PLANKS; p++) {
     const yc = 0.5 + (r() - 0.5) * 0.5, dirn = r() < 0.5 ? -1 : 1, elong = 7 + r() * 5, tipW = 0.5 + r() * 0.5; // heart line (plank fraction), arch direction, arm slope, tip roundness (in)
     const tone = [0.1, -0.12, 0.02][p] + (r() - 0.5) * 0.06, wob = { a: 0.12 + r() * 0.1, p: r() * TAU }, pb = r() * TAU, inPerRing = 48 / RINGS;
@@ -54,7 +54,7 @@ function drawWalnut(ctx, W, H, D) {
         const rr = ring + 0.35 * Math.sin((TAU * ring) / 4 + pb), f = rr - Math.floor(rr); // uneven ring spacing
         const late = f < 0.75 ? f / 0.75 : (1 - f) / 0.25; // slow darkening into the latewood line, quick return
         const band = 0.5 + 0.5 * Math.sin((TAU * ring) / 8 + pb); // a few broad darker bands
-        const v = THREE.MathUtils.clamp(0.12 + 0.34 * late * late + 0.3 * band * band * band + tone + 0.5 * fibre(u, w) + 0.35 * blotch(u, w), 0, 1);
+        const v = THREE.MathUtils.clamp(0.12 + 0.34 * late * late + 0.3 * band * band * band + tone + 0.5 * fibre(u, w) + 0.3 * fibre2(u, w) + 0.35 * blotch(u, w), 0, 1);
         const i = (y * W + x) * 4;
         for (let c = 0; c < 3; c++) px[i + c] = light[c] + (dark[c] - light[c]) * v;
         px[i + 3] = 255;
@@ -62,7 +62,7 @@ function drawWalnut(ctx, W, H, D) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  for (let i = 0; i < 2500; i++) { ctx.fillStyle = `rgba(40,24,16,${0.05 + r() * 0.1})`; ctx.fillRect(r() * W, r() * H, 4 + r() * 18, 1); } // pores
+  for (let i = 0; i < 6000; i++) { ctx.fillStyle = `rgba(36,24,18,${0.06 + r() * 0.14})`; ctx.fillRect(r() * W, r() * H, 6 + r() * 30, 1); } // pores / fine straight streaks
   ctx.fillStyle = 'rgba(22,12,8,0.85)';
   for (let p = 0; p < PLANKS; p++) ctx.fillRect(0, Math.round(p * ph) - 1, W, Math.max(2, D.seamW * ppi)); // plank joints (min 2 px so they survive mip-mapping)
 }
@@ -72,7 +72,7 @@ function drawWalnut(ctx, W, H, D) {
 // (No ctx.filter: blur filters blanked the canvas in headless Chrome.)
 function drawMarble(ctx, W, H) {
   const r = rng(77);
-  ctx.fillStyle = 'rgb(241,239,233)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgb(240,240,238)'; ctx.fillRect(0, 0, W, H); // cool white ground
   const blob = (x, y, rad, rgb, a) => {
     const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
     g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
@@ -91,36 +91,47 @@ function drawMarble(ctx, W, H) {
   const hair = (x, y, dir, n, wid, a) => { // thin vein with a faint halo
     let px = x, py = y;
     walk(x, y, dir, n, 12, 0.6, (qx, qy, i) => {
-      for (const [s, al] of [[9, a * 0.12], [4, a * 0.25], [1.5, a]]) {
-        ctx.strokeStyle = `rgba(120,121,130,${al})`; ctx.lineWidth = wid * s * (0.5 + 0.5 * Math.abs(Math.sin(i * 0.4 + wid)));
+      for (const [s, al] of [[7, a * 0.1], [3, a * 0.22], [1.2, a]]) {
+        ctx.strokeStyle = `rgba(85,87,96,${al})`; ctx.lineWidth = wid * s * (0.5 + 0.5 * Math.abs(Math.sin(i * 0.4 + wid)));
         ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.stroke();
       }
       px = qx; py = qy;
     });
   };
-  const flow = 0.62; // dominant vein direction (rad)
+  const flow = 0.62, spots = []; // dominant vein direction (rad); band points that fall on the visible slab (pool candidates)
   /** Smoky band: half-width swells and pinches between ~0.4x and ~1.5x wid; spawns narrower branch bands + secondary veins. */
   const band = (x0, y0, dir0, n, wid, depth) => {
     const phase = r() * TAU, side = r() < 0.5 ? -0.55 : 0.55;
     let edge = null;
     walk(x0, y0, dir0, n, 5, 0.45, (x, y, i, dir) => {
       const w = wid * (0.4 + 1.1 * Math.abs(Math.sin(i * 0.025 + phase)) ** 2);
+      if (x > W * 0.2 && x < W * 0.8 && y > H * 0.15 && y < H * 0.85) spots.push([x, y, dir]);
       const e = [x - Math.sin(dir) * w * side, y + Math.cos(dir) * w * side]; // crisper vein line bounding one flank of the band
-      if (edge) { ctx.strokeStyle = 'rgba(96,97,106,0.22)'; ctx.lineWidth = 1 + w * 0.06; ctx.beginPath(); ctx.moveTo(...edge); ctx.lineTo(...e); ctx.stroke(); }
+      if (edge) { ctx.strokeStyle = 'rgba(85,87,96,0.4)'; ctx.lineWidth = 1 + w * 0.06; ctx.beginPath(); ctx.moveTo(...edge); ctx.lineTo(...e); ctx.stroke(); }
       edge = e;
       for (let k = 0; k < 2; k++) { // feathered body: blobs scattered across the band
         const o = (r() - 0.5) * w * 1.6;
-        blob(x - Math.sin(dir) * o, y + Math.cos(dir) * o, w * (0.5 + r() * 0.8), '150,150,155', 0.08 + r() * 0.09);
+        blob(x - Math.sin(dir) * o, y + Math.cos(dir) * o, w * (0.5 + r() * 0.8), '140,141,148', 0.14 + r() * 0.14);
       }
-      if (Math.sin(i * 0.06 + phase) > -0.2) blob(x + (r() - 0.5) * w * 0.7, y + (r() - 0.5) * w * 0.7, w * (0.25 + r() * 0.35), '100,101,110', 0.17); // darker smoky core
+      if (Math.sin(i * 0.06 + phase) > -0.2) blob(x + (r() - 0.5) * w * 0.7, y + (r() - 0.5) * w * 0.7, w * (0.25 + r() * 0.35), '100,101,110', 0.3); // darker smoky core
       if (depth < 1 && r() < 0.007) band(x, y, dir + (r() < 0.5 ? 0.9 : -0.9), n * 0.35, wid * 0.45, depth + 1);
-      if (r() < 0.007) hair(x, y, dir + (r() < 0.5 ? 0.8 : -0.8), 20 + r() * 25, 1 + r(), 0.2); // secondary veins branching off
+      if (r() < 0.007) hair(x, y, dir + (r() < 0.5 ? 0.8 : -0.8), 20 + r() * 25, 1 + r(), 0.45); // secondary veins branching off
     });
   };
-  [0.0, 0.3, 0.62, 0.9].forEach((fy, b) => {
-    band(-60, H * fy - 120, flow + (r() - 0.5) * 0.25, 270, b % 2 ? 20 + r() * 8 : 38 + r() * 14, 0);
-    if (b % 2) hair(-40, H * (fy + 0.15), flow + (r() - 0.5) * 0.3, 110, 1.2, 0.22);
+  // bands fan out +-0.6 rad around the flow so they converge/diverge instead of running parallel; the last one crosses the others
+  [[0.0, 0.45], [0.3, -0.35], [0.62, 0.1], [0.9, -0.6]].forEach(([fy, dd], b) => {
+    band(-60, H * fy - 120, flow + dd, 270, b % 2 ? 20 + r() * 8 : 38 + r() * 14, 0);
+    if (b % 2) hair(-40, H * (fy + 0.15), flow - dd * 0.5, 110, 1.2, 0.45);
   });
+  band(W * 0.15, H + 40, -0.95, 260, 26, 0); // crossing band, bottom-left to top-right
+  for (let k = 0; k < 4; k++) { // dark pools where the smoky veins accumulate (lift_top1/3.jpg), elongated along the band
+    const [x, y, dir] = spots[Math.floor(r() * spots.length)];
+    for (let j = 0; j < 14; j++) {
+      const a = (r() - 0.5) * 220, o = (r() - 0.5) * 50;
+      blob(x + Math.cos(dir) * a - Math.sin(dir) * o, y + Math.sin(dir) * a + Math.cos(dir) * o, 40 + r() * 50, '95,97,106', 0.16 + r() * 0.14);
+    }
+    hair(x, y, dir + (r() - 0.5), 30, 1.2, 0.45);
+  }
   for (let i = 0; i < 9000; i++) { ctx.fillStyle = r() < 0.5 ? `rgba(120,120,126,${r() * 0.1})` : `rgba(255,255,255,${r() * 0.25})`; ctx.fillRect(r() * W, r() * H, 1.5, 1.5); } // speckle
 }
 
@@ -153,6 +164,10 @@ export function build() {
     t.offset.set(i * 0.37, i ? i * 0.23 : 0.5); t.needsUpdate = true;
     return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6, name: `liftTop-walnut-${i}` });
   });
+  // fascias: same print with the planks stretched to fasciaPlankW (> fascia height) and V offset just past a joint => single-board face
+  const fasciaTex = walnutTex.clone();
+  fasciaTex.repeat.y = 1 / m(PLANKS * D.fasciaPlankW); fasciaTex.offset.set(0.61, 0.15 / (PLANKS * D.fasciaPlankW)); fasciaTex.needsUpdate = true;
+  const fasciaMat = new THREE.MeshStandardMaterial({ map: fasciaTex, roughness: 0.6, name: 'liftTop-walnut-fascia' });
   const marbleTex = tileTex(1024, 1024, 24, 24, drawMarble);
   marbleTex.offset.set(0.5, 0.5); // slab UVs are centred on 0: keep the (non-tiling) tile seam off the slab
   const marble = new THREE.MeshPhysicalMaterial({ map: marbleTex, roughness: 0.08, clearcoat: 0.6, clearcoatRoughness: 0.08, name: 'liftTop-faux-marble' });
@@ -170,7 +185,7 @@ export function build() {
     at(box(D.panelT, bodyH, cd, walnut[2], 'liftTop:sideL'), -cw / 2 + D.panelT / 2, D.legH + bodyH / 2, 0),
     at(box(D.panelT, bodyH, cd, walnut[3], 'liftTop:sideR'), cw / 2 - D.panelT / 2, D.legH + bodyH / 2, 0),
     at(box(D.panelT, innerH, cd, walnut[4], 'liftTop:divider'), xDiv - D.panelT / 2, floorY + innerH / 2, 0),
-    ...[1, -1].map((s) => at(box(wellX1 - wellX0, innerH, D.fasciaT, walnut[s > 0 ? 3 : 2], s > 0 ? 'liftTop:fasciaFront' : 'liftTop:fasciaBack'),
+    ...[1, -1].map((s) => at(box(wellX1 - wellX0, innerH, D.fasciaT, fasciaMat, s > 0 ? 'liftTop:fasciaFront' : 'liftTop:fasciaBack'),
       (wellX0 + wellX1) / 2, floorY + innerH / 2, s * (cd / 2 - D.fasciaInset - D.fasciaT / 2))),
     at(rbox(D.marbleW, D.topT, D.d, marble, 'liftTop:marble', D), -D.w / 2 + D.marbleW / 2, bodyTop, 0),
   );
@@ -217,6 +232,12 @@ export function build() {
       set.add(at(box(M.armT, M.armW, armL + M.armW, steel, 'liftTop:arm'), armX, 0, armL / 2)); // built along +Z, rotated by -phi about X
       set.add(at(lying(M.pinR, M.armT * 3, 'x', steel, 'liftTop:pin'), armX, 0, 0), at(lying(M.pinR, M.armT * 3, 'x', steel, 'liftTop:pin'), armX, 0, armL));
     });
+    // chunky hinge blocks at the base pivots (on the wall plate) and under the rail pivots (lift_top3.jpg)
+    const [kw, kh, kd] = M.knuckle, kx = wallX + inward * (M.plateT / 2 + kw / 2);
+    pivotZ.forEach((z) => {
+      body.add(at(box(kw, kh, kd, steel, 'liftTop:knuckle'), kx, pivotY + M.armW / 2 - kh / 2, z));
+      top.add(at(box(kw, M.railH, kd, steel, 'liftTop:railKnuckle'), kx, bodyTop - M.railH / 2, z + armL * Math.cos(phi0)));
+    });
     // rail under the top that carries the two upper pivots
     const railX = armX + inward * (M.armT / 2 + M.railW / 2 + 0.05), tipZ = (pivotZ[0] + pivotZ[1]) / 2 + armL * Math.cos(phi0);
     top.add(at(box(M.railW, M.railH, M.armGap + 2 * M.armW, steel, 'liftTop:topRail'), railX, bodyTop - M.railH / 2, tipZ));
@@ -228,7 +249,7 @@ export function build() {
     body.add(sp);
   }
   const span = Math.abs(sides[1].armX - sides[0].armX);
-  armSets[1].add(at(lying(M.barR, span, 'x', steel, 'liftTop:crossBar'), (sides[0].armX + sides[1].armX) / 2, 0, armL * 0.55));
+  armSets[1].add(at(lying(M.barR, span, 'x', steel, 'liftTop:crossBar'), (sides[0].armX + sides[1].armX) / 2, 0, armL * M.barAlong)); // sync bar low on the rear arms: sits at rim height between the hinge blocks when open
 
   const g = group('liftTop', body, legs, top, ...armSets);
 
