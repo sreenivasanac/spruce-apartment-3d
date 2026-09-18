@@ -32,6 +32,7 @@ async function open(query, portrait) {
   page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
   await page.goto(base + query);
   await page.waitForFunction('window.__ready === true', null, { timeout: 60000 }).catch(() => errors.push('timeout waiting for __ready'));
+  errors.push(...(await page.evaluate('window.__apt?.failed ?? []')).map((f) => `MODULE FAILED ${f}`));
   if (errors.length) console.error(`[page errors] ${query}\n  ` + errors.join('\n  '));
   return page;
 }

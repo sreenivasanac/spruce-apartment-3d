@@ -1,34 +1,36 @@
 // Assembles the whole apartment from the per-item modules.
+// Modules are loaded dynamically and individually guarded, so one broken module never blanks the scene
+// (failures are listed in window.__apt.failed and logged as warnings).
 import { FURNITURE } from './dimensions.js';
 import { buildShell } from './shell.js';
 import { group, place } from './lib/build.js';
-import * as finishes from './rooms/finishes.js';
-import * as openings from './rooms/openings.js';
-import * as kitchen from './rooms/kitchen.js';
-import * as bathroom from './rooms/bathroom.js';
-import * as closets from './rooms/closets.js';
-import * as lighting from './rooms/lighting.js';
-import * as desk from './furniture/desk.js';
-import * as chair from './furniture/chair.js';
-import * as futon from './furniture/futon.js';
-import * as liftTop from './furniture/liftTop.js';
-import * as mandir from './furniture/mandir.js';
-import * as bed from './furniture/bed.js';
 
-const FURN = { desk, chair, futon, liftTop, mandir, bed };
+const ROOM_MODS = import.meta.glob('./rooms/*.js');
+const FURN_MODS = import.meta.glob('./furniture/*.js');
+const ROOM_ORDER = ['finishes', 'openings', 'deck', 'kitchen', 'bathroom', 'closets', 'lighting']; // lighting last
 
-export function buildApartment(ctx) {
+export const failed = [];
+async function load(mods, path, ctx) {
+  try { return (await mods[path]()).build(ctx); } catch (e) { failed.push(`${path}: ${e.message}`); console.warn(`[module failed] ${path}`, e); return null; }
+}
+
+export async function buildApartment(ctx) {
   const shell = buildShell();
-  const rooms = [finishes, openings, kitchen, bathroom, closets].map((mod) => mod.build(ctx));
+  const root = group('apartment', shell);
   const furniture = group('furniture');
-  for (const [key, mod] of Object.entries(FURN)) {
-    const g = mod.build(ctx);
+  root.add(furniture);
+  for (const key of Object.keys(FURNITURE)) {
+    const g = await load(FURN_MODS, `./furniture/${key}.js`, ctx);
+    if (!g) continue;
     const D = FURNITURE[key];
     place(g, D.pos[0], D.pos[1], key === 'bed' ? 0.5 : 0, D.rot); // bed sits on carpet
     g.userData.draggable = true;
     g.userData.key = key;
     furniture.add(g);
   }
-  const lights = lighting.build(ctx); // last: may reference fixtures/windows
-  return { root: group('apartment', shell, ...rooms, furniture, lights), shell, furniture };
+  for (const name of ROOM_ORDER) {
+    const g = await load(ROOM_MODS, `./rooms/${name}.js`, ctx);
+    if (g) root.add(g);
+  }
+  return { root, shell, furniture };
 }

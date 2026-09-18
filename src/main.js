@@ -8,7 +8,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { ENV, ROOMS, FURNITURE, m, IN } from './dimensions.js';
-import { buildApartment } from './apartment.js';
+import { buildApartment, failed } from './apartment.js';
 import { wallColliders, areaReport } from './shell.js';
 import { sizeInches, place } from './lib/build.js';
 import { SHOTS } from './shots.js';
@@ -35,7 +35,7 @@ const persp = new THREE.PerspectiveCamera(60, 1, 0.05, 300);
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 let camera = persp;
 
-const { root, shell, furniture } = buildApartment({ scene, renderer });
+const { root, shell, furniture } = await buildApartment({ scene, renderer });
 scene.add(root);
 const center = new THREE.Vector3(m(ENV.w / 2), 0, m(ENV.d / 2));
 
@@ -204,7 +204,7 @@ renderer.setAnimationLoop(() => {
 
 // Debug/measurement hook for tools/measure.mjs and critics.
 window.__apt = {
-  THREE, scene, renderer, SHOTS, area,
+  THREE, scene, renderer, SHOTS, area, failed,
   find: (name) => scene.getObjectByName(name),
   names: () => { const n = []; scene.traverse((o) => o.name && n.push(o.name)); return n; },
   size: (name) => { const o = scene.getObjectByName(name); return o ? sizeInches(o) : null; },
