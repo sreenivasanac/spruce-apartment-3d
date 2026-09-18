@@ -1,6 +1,7 @@
 // Shared PBR materials. All textures are procedural (canvas) — no external assets.
 // Colors sampled from the reference photos (see docs/spec.md "Material schedule").
 import * as THREE from 'three';
+import { FINISHES } from './dimensions.js';
 
 function canvasTex(size, draw, { repeat = [1, 1], srgb = true } = {}) {
   const c = document.createElement('canvas');
@@ -34,34 +35,107 @@ function noise(ctx, s, base, amp, seed, grain = 1) {
   if (grain > 1) { ctx.imageSmoothingEnabled = true; ctx.drawImage(ctx.canvas, 0, 0, s / grain, s / grain, 0, 0, s, s); }
 }
 
-// Dark espresso LVP planks, ~6" x 48". Texture tile = 48" x 48" (8 plank rows, staggered).
-function lvpMap(kind) {
-  return canvasTex(1024, (ctx, s) => {
-    const r = rng(7);
-    const rows = 8, ph = s / rows;
-    for (let i = 0; i < rows; i++) {
-      const off = r() * s;
-      for (let k = -1; k < 2; k++) {
-        const x0 = off + k * s;
-        const v = 0.93 + r() * 0.14;
-        if (kind === 'color') {
-          ctx.fillStyle = `rgb(${52 * v | 0},${38 * v | 0},${32 * v | 0})`;
-          ctx.fillRect(x0, i * ph, s, ph);
-          for (let g = 0; g < 60; g++) { // grain streaks
-            ctx.strokeStyle = `rgba(${r() < 0.5 ? '20,12,10' : '95,72,60'},${0.08 + r() * 0.12})`;
-            ctx.lineWidth = 0.5 + r() * 1.5;
-            const gy = i * ph + r() * ph; const gx = x0 + r() * s;
-            ctx.beginPath(); ctx.moveTo(gx, gy); ctx.bezierCurveTo(gx + 60, gy + (r() - 0.5) * 6, gx + 120, gy + (r() - 0.5) * 6, gx + 160 + r() * 200, gy + (r() - 0.5) * 4); ctx.stroke();
-          }
-          ctx.fillStyle = 'rgba(8,5,4,0.9)'; ctx.fillRect(x0, i * ph, 2, ph); // butt joint
-        } else {
-          { const q = 120 + r() * 50 | 0; ctx.fillStyle = `rgb(${q},${q},${q})`; ctx.fillRect(x0, i * ph, s, ph); } // grey: three.js reads roughness from G
-        }
-      }
-      ctx.fillStyle = kind === 'color' ? 'rgba(8,5,4,0.9)' : 'rgb(230,230,230)';
-      ctx.fillRect(0, i * ph, s, 2); // long joint
+// Espresso LVP, 6" x 48" planks (FINISHES.lvp). One tile = 96" x 96": 16 rows x 2 planks with a random stagger per row.
+// Planks run along canvas Y = texture V = plan-y (E-W, IMG_3933). Colour / roughness (G channel) / bump are drawn in
+// lockstep so joints, embossed grain and scuffs register with each other.
+function lvpMaps() {
+  const S = 2048, rows = L.tile / L.plankW, ph = S / rows, pl = S * L.plankL / L.tile;
+  const mk = (size) => { const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'); x.translate(size, 0); x.rotate(Math.PI / 2); x.scale(size / S, size / S); return x; };
+  const col = mk(2048), rough = mk(1024), bump = mk(1024), all = [col, rough, bump];
+  bump.fillStyle = '#808080'; bump.fillRect(0, 0, S, S);
+  const plank = (x0, y0, seed) => {
+    const r = rng(seed), v = 0.9 + r() * 0.2, warm = r() * 5;
+    for (const c of all) { c.save(); c.beginPath(); c.rect(x0, y0, pl, ph); c.clip(); }
+    col.fillStyle = `rgb(${(43 + warm) * v | 0},${31 * v | 0},${27 * v | 0})`; col.fillRect(x0, y0, pl, ph);
+    const g = 98 + r() * 16 | 0; rough.fillStyle = `rgb(${g},${g},${g})`; rough.fillRect(x0, y0, pl, ph); // satin: roughness ~0.38-0.45
+    for (let i = 0; i < 4; i++) { col.fillStyle = `rgba(${r() < 0.5 ? '18,10,8' : '110,80,64'},${0.04 + r() * 0.07})`; col.fillRect(x0, y0 + r() * ph, pl, 6 + r() * 30); } // tonal bands
+    for (let i = 0; i < 110; i++) { // grain streaks along the plank, every third one embossed
+      const gy = y0 + r() * ph, gx = x0 + r() * pl - 100, len = 120 + r() * 520, a = (r() - 0.5) * 7, dark = r() < 0.55;
+      const path = (c) => { c.beginPath(); c.moveTo(gx, gy); c.bezierCurveTo(gx + len / 3, gy + a, gx + 2 * len / 3, gy - a, gx + len, gy + a * 0.3); c.stroke(); };
+      col.strokeStyle = `rgba(${dark ? '16,9,7' : '108,80,64'},${0.07 + r() * 0.13})`; col.lineWidth = 0.6 + r() * 2.2; path(col);
+      if (i % 3 === 0) { bump.strokeStyle = 'rgba(40,40,40,0.35)'; bump.lineWidth = 1.5; path(bump); rough.strokeStyle = 'rgba(190,190,190,0.25)'; rough.lineWidth = 1.5; path(rough); }
     }
-  }, { srgb: kind === 'color' });
+    col.fillStyle = 'rgba(8,5,4,0.8)'; col.fillRect(x0, y0, 2, ph); col.fillRect(x0, y0, pl, 2); // butt + long joint
+    rough.fillStyle = 'rgb(225,225,225)'; rough.fillRect(x0, y0, 2, ph); rough.fillRect(x0, y0, pl, 2);
+    bump.fillStyle = 'rgba(0,0,0,0.85)'; bump.fillRect(x0, y0, 4, ph); bump.fillRect(x0, y0, pl, 4); // micro-bevel groove
+    for (const c of all) c.restore();
+  };
+  const r = rng(7);
+  for (let i = 0; i < rows; i++) {
+    const off = (0.15 + r() * 0.7) * pl;
+    plank(off, i * ph, 100 + i * 2); // plank A
+    plank(off - pl, i * ph, 101 + i * 2); plank(off + pl, i * ph, 101 + i * 2); // plank B wraps around the tile edge
+  }
+  for (let i = 0; i < 700; i++) { // fine traffic scuffs: only visible in the glare (IMG_3933)
+    const x = r() * S, y = r() * S, a = r() * Math.PI, len = 30 + r() * 220;
+    rough.strokeStyle = `rgba(${r() < 0.7 ? '235,235,235' : '70,70,70'},${0.12 + r() * 0.25})`; rough.lineWidth = 0.8 + r();
+    rough.beginPath(); rough.moveTo(x, y); rough.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); rough.stroke();
+  }
+  return all.map((c, i) => {
+    const t = new THREE.CanvasTexture(c.canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 16;
+    if (i === 0) t.colorSpace = THREE.SRGBColorSpace;
+    t.repeat.setScalar(1 / (L.tile * 0.0254)); // UVs are in metres
+    return t;
+  });
+}
+
+/** Draw fn(x, y) at every wrapped copy so blobs crossing the canvas edge tile seamlessly. */
+function wrapped(s, x, y, rad, fn) {
+  for (const dx of [-s, 0, s]) for (const dy of [-s, 0, s]) if (x + dx > -rad && x + dx < s + rad && y + dy > -rad && y + dy < s + rad) fn(x + dx, y + dy);
+}
+const blob = (ctx, x, y, rad, rgb, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, rad); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2); };
+
+// Light orange-peel drywall texture (height map): overlapping soft splatter blobs ~1/8"-1/4" across.
+function orangePeelMap() {
+  return canvasTex(1024, (ctx, s) => {
+    const r = rng(5), px = s / FINISHES.wallTextureTile; // px per inch
+    ctx.fillStyle = '#707070'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 9000; i++) { const rad = (0.06 + r() * 0.13) * px, a = 0.25 + r() * 0.45; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, '255,255,255', a)); }
+  }, { srgb: false });
+}
+
+// Greige cut-pile carpet: per-fibre noise + soft light/dark mottling from foot traffic and vacuuming (IMG_3935).
+function carpetMaps() {
+  const mottled = (base, amp, seed, n, alpha) => (ctx, s) => {
+    noise(ctx, s, base, amp, seed);
+    const r = rng(seed + 1);
+    for (let i = 0; i < n; i++) { const rad = 25 + r() * 110, lite = r() < 0.5, a = alpha * (0.5 + r()); wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? '215,200,184' : '70,60,52', a)); }
+  };
+  return [canvasTex(1024, mottled([130, 117, 105], 60, 3, 220, 0.045)), canvasTex(1024, mottled([128, 128, 128], 220, 4, 0, 0), { srgb: false })];
+}
+
+// Wall-plate faces at 64 px/in (white thermoplastic). kind: outlet | gfci | rocker | rocker2 | coax. Sizes: FINISHES.plate.
+function plateMat(kind) {
+  const P = 64, F = FINISHES.plate, wIn = kind === 'rocker2' ? F.w2 : F.w, W = Math.round(wIn * P), H = Math.round(F.h * P);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), cy = H / 2, I = (v) => v * P;
+  const rr = (cx, y0, w, h, rad) => { x.beginPath(); x.roundRect(cx - I(w) / 2, y0 - I(h) / 2, I(w), I(h), I(rad)); };
+  const dot = (cx, y0, rad, fill) => { x.beginPath(); x.arc(cx, y0, I(rad), 0, 7); x.fillStyle = fill; x.fill(); };
+  const screw = (cx, y0) => { dot(cx, y0, 0.095, '#dcdad3'); x.strokeStyle = '#8f8d86'; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, y0, I(0.095), 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx - I(0.07), y0 + 1); x.lineTo(cx + I(0.07), y0 - 1); x.stroke(); };
+  const slots = (cx, y0) => { x.fillStyle = '#2f2e2b'; x.fillRect(cx - I(0.29), y0 - I(0.2), I(0.075), I(0.37)); x.fillRect(cx + I(0.215), y0 - I(0.16), I(0.075), I(0.29)); x.beginPath(); x.arc(cx, y0 + I(0.3), I(0.09), Math.PI, 0); x.rect(cx - I(0.09), y0 + I(0.3), I(0.18), I(0.07)); x.fill(); };
+  const line = () => { x.strokeStyle = '#aeaca4'; x.lineWidth = 2; x.stroke(); };
+  x.fillStyle = '#f1efe9'; x.fillRect(0, 0, W, H);
+  const decora = (cx) => { rr(cx, cy, 1.31, 2.63, 0.06); x.fillStyle = '#ebe9e2'; x.fill(); line(); screw(cx, cy - I(1.19)); screw(cx, cy + I(1.19)); };
+  if (kind === 'outlet') {
+    for (const s of [-1, 1]) { rr(W / 2, cy + s * I(0.77), 1.34, 1.12, 0.45); x.fillStyle = '#e9e7e0'; x.fill(); line(); slots(W / 2, cy + s * I(0.77) - I(0.05)); }
+    screw(W / 2, cy);
+  } else if (kind === 'gfci') {
+    decora(W / 2); slots(W / 2, cy - I(0.85)); slots(W / 2, cy + I(0.8));
+    x.fillStyle = '#3a3a3a'; x.fillRect(W / 2 - I(0.2), cy - I(0.27), I(0.4), I(0.2)); x.fillStyle = '#b4392d'; x.fillRect(W / 2 - I(0.2), cy + I(0.02), I(0.4), I(0.2)); dot(W / 2 + I(0.45), cy - I(0.05), 0.04, '#4fae55');
+  } else if (kind === 'coax') {
+    dot(W / 2, cy, 0.22, '#9d9c98'); dot(W / 2, cy, 0.15, '#c9c8c3'); dot(W / 2, cy, 0.035, '#5b5a57'); screw(W / 2, cy - I(1.64)); screw(W / 2, cy + I(1.64));
+  } else {
+    for (const cx of kind === 'rocker2' ? [W / 2 - I(0.906), W / 2 + I(0.906)] : [W / 2]) {
+      decora(cx); rr(cx, cy, 1.18, 2.5, 0.05);
+      const g = x.createLinearGradient(0, cy - I(1.25), 0, cy + I(1.25)); g.addColorStop(0, '#f6f4ee'); g.addColorStop(0.5, '#efede6'); g.addColorStop(0.51, '#e2e0d8'); g.addColorStop(1, '#f0eee8'); x.fillStyle = g; x.fill(); line();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  // the plate is an extruded rounded rectangle whose cap UVs are its XY coords in metres, centred -> map them to 0..1
+  t.repeat.set(1 / (wIn * 0.0254), 1 / (F.h * 0.0254)); t.offset.set(0.5, 0.5);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.42, name: "plate-" + kind });
 }
 
 // Cherry-finish laminate/veneer: warm red-brown with fine darker grain streaks running along U. Tile = 1 m x 0.25 m.
@@ -84,11 +158,9 @@ function cherryMap() {
   return t;
 }
 
+const L = FINISHES.lvp;
 const tex = {
-  lvp: lvpMap('color'), lvpRough: lvpMap('rough'),
-  carpet: canvasTex(512, (c, s) => noise(c, s, [150, 136, 122], 70, 3)),
-  carpetBump: canvasTex(512, (c, s) => noise(c, s, [128, 128, 128], 200, 4), { srgb: false }),
-  orangePeel: canvasTex(512, (c, s) => noise(c, s, [128, 128, 128], 90, 5, 4), { srgb: false }),
+  orangePeel: orangePeelMap(),
   stucco: canvasTex(512, (c, s) => noise(c, s, [128, 128, 128], 230, 6, 8), { srgb: false }),
   quartz: canvasTex(512, (ctx, s) => {
     noise(ctx, s, [128, 126, 122], 14, 8);
@@ -98,25 +170,26 @@ const tex = {
   brushed: canvasTex(256, (ctx, s) => { const r = rng(11); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},0.06)`; ctx.fillRect(r() * s, 0, 1, s); } }, { srgb: false }),
 };
 // Texture world sizes: set repeat per metre so UV-scaled geometry (see lib/build.js uvBox) tiles physically.
-tex.lvp.repeat.set(1 / 1.2192, 1 / 1.2192); tex.lvpRough.repeat.copy(tex.lvp.repeat); // 48" tile
-tex.carpet.repeat.set(2.5, 2.5); tex.carpetBump.repeat.set(2.5, 2.5);
-tex.orangePeel.repeat.set(1.6, 1.6); tex.stucco.repeat.set(2, 2); tex.quartz.repeat.set(1.2, 1.2);
+[tex.lvp, tex.lvpRough, tex.lvpBump] = lvpMaps();
+[tex.carpet, tex.carpetBump] = carpetMaps();
+tex.carpet.repeat.setScalar(1 / (FINISHES.carpetTile * 0.0254)); tex.carpetBump.repeat.setScalar(2.5); // bump is shared with upholstery fabrics
+tex.orangePeel.repeat.setScalar(1 / (FINISHES.wallTextureTile * 0.0254)); tex.stucco.repeat.set(2, 2); tex.quartz.repeat.set(1.2, 1.2);
 
 const std = (o) => new THREE.MeshStandardMaterial(o);
 const phys = (o) => new THREE.MeshPhysicalMaterial(o);
 
 export const MAT = {
   // architecture
-  wall: std({ color: 0xb8b1a3, roughness: 0.92, bumpMap: tex.orangePeel, bumpScale: 0.6, name: 'wall-greige' }),
-  wallAccent: std({ color: 0x8d8c88, roughness: 0.92, bumpMap: tex.orangePeel, bumpScale: 0.6, name: 'wall-accent-gray' }),
-  ceiling: std({ color: 0xd9d5cb, roughness: 0.97, bumpMap: tex.stucco, bumpScale: 0.22, name: 'ceiling' }), // fine spray texture; photos read almost smooth
+  wall: std({ color: 0xb9b2a4, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 0.5, name: 'wall-greige' }), // eggshell greige, IMG_3933/3935
+  wallAccent: std({ color: 0x8d8c88, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 0.5, name: 'wall-accent-gray' }),
+  ceiling: std({ color: 0xd9d5cb, roughness: 0.97, bumpMap: tex.orangePeel, bumpScale: 0.2, name: 'ceiling' }), // fine spray texture; photos read almost smooth (IMG_3932/3935)
   trim: std({ color: 0xeeece6, roughness: 0.45, name: 'trim-white-semigloss' }),
   door: std({ color: 0xefede8, roughness: 0.4, name: 'door-white' }),
   entryDoor: std({ color: 0x8b877f, roughness: 0.5, name: 'entry-door-gray' }),
-  lvp: std({ map: tex.lvp, roughnessMap: tex.lvpRough, roughness: 0.62, metalness: 0, name: 'lvp-espresso' }),
-  carpet: std({ map: tex.carpet, bumpMap: tex.carpetBump, bumpScale: 1.2, roughness: 1, name: 'carpet-greige' }),
-  deckFloor: std({ color: 0x6f7377, roughness: 0.7, name: 'deck-gray-paint' }),
-  deckRail: std({ color: 0x4b4e50, roughness: 0.75, name: 'deck-rail-charcoal' }),
+  lvp: std({ map: tex.lvp, roughnessMap: tex.lvpRough, roughness: 1, bumpMap: tex.lvpBump, bumpScale: 0.35, metalness: 0, envMapIntensity: 1.6, name: 'lvp-espresso' }), // satin: roughness lives in the map (~0.45)
+  carpet: phys({ map: tex.carpet, bumpMap: tex.carpetBump, bumpScale: 1.4, roughness: 1, sheen: 0.5, sheenRoughness: 0.85, sheenColor: 0x6e6257, name: 'carpet-greige' }), // sheen = fuzzy cut-pile rim light
+  deckFloor: std({ color: 0x6d7379, roughness: 0.5, name: 'deck-gray-paint' }),
+  deckRail: std({ color: 0x4d555b, roughness: 0.7, name: 'deck-rail-charcoal' }),
   stuccoExt: std({ color: 0xcfc9b8, roughness: 1, bumpMap: tex.stucco, bumpScale: 1.1, name: 'stucco-exterior' }),
   // kitchen / bath
   cabinet: std({ color: 0xf1f0ec, roughness: 0.55, name: 'cabinet-white-thermofoil' }),
@@ -167,7 +240,7 @@ export const MAT = {
   // lighting: opal/frosted diffuser of a switched-on LED fixture (no transmission -> no extra render pass); lighting.js clones it per brightness
   lensLit: std({ color: 0xfff6e6, roughness: 0.55, emissive: 0xffdcae, emissiveIntensity: 2.2, name: 'fixture-lens-lit' }),
   // deck item (textured scenery materials — grass, bark, foliage, sky — are built in rooms/deck.js next to their painters)
-  stuccoSoffit: std({ color: 0xc4bdaa, roughness: 1, bumpMap: tex.stucco, bumpScale: 5, name: 'stucco-soffit-heavy' }),
+  stuccoSoffit: std({ color: 0xded7c6, roughness: 1, bumpMap: tex.stucco, bumpScale: 4, name: 'stucco-soffit-heavy' }),
   partitionWhite: std({ color: 0xe6e4dc, roughness: 0.6, name: 'partition-white-paint' }),
   hvacIvory: std({ color: 0xe4e1d6, roughness: 0.45, metalness: 0.1, name: 'daikin-ivory' }),
   hvacDark: std({ color: 0x1c1d1f, roughness: 0.7, name: 'condenser-cavity' }),
@@ -176,8 +249,12 @@ export const MAT = {
   roofEave: std({ color: 0x8c8980, roughness: 0.9, name: 'roof-eave' }),
   // openings item: cheap window glass (no transmission pass; never casts shadows), insect screen, corridor-side door paint
   glassPane: phys({ color: 0xdfe8e6, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.06, depthWrite: false, envMapIntensity: 1.5, specularIntensity: 1, side: THREE.DoubleSide, name: 'window-glass' }),
-  insectScreen: std({ color: 0x3a3c3e, roughness: 1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, name: 'insect-screen' }),
+  insectScreen: std({ color: 0x232527, roughness: 1, transparent: true, opacity: 0.25, depthWrite: false, side: THREE.DoubleSide, name: 'insect-screen' }),
   corridorTrim: std({ color: 0x8f8a80, roughness: 0.5, name: 'corridor-door-frame-taupe' }),
   mirrorEdge: std({ color: 0x9fb0a8, roughness: 0.15, metalness: 0.3, name: 'mirror-glass-edge' }), // bathroom: polished edge of the frameless mirror
+  // finishes: wall plates (face art baked per kind), LVP->carpet reducer, mini-split shadow lines
+  plateOutlet: plateMat('outlet'), plateGfci: plateMat('gfci'), plateRocker: plateMat('rocker'), plateRocker2: plateMat('rocker2'), plateCoax: plateMat('coax'),
+  transition: std({ color: 0x2a1d18, roughness: 0.5, name: 'transition-vinyl-espresso' }),
+  hvacShadow: std({ color: 0x6f6d68, roughness: 0.8, name: 'minisplit-shadow-gap' }),
 };
 export const TEX = tex;
