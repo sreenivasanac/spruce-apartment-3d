@@ -258,7 +258,7 @@ export const FIXTURES = {
 export const FURNITURE = {
   desk: { w: 63, d: 24, h: 29, topT: 1, leg: 1.5, pos: [298, 232], rot: -90, // w/d/h user-measured; rest from table.jpg
     endPanelW: 16.5, tubeT: 1, frameInset: 0.5, railInset: 1, railH: 1.5, footH: 0.5, footDia: 1.2, edgeR: 0.06, tubeR: 0.12, woodTile: 24 },
-  chair: { w: 25, d: 25, h: 47, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg
+  chair: { w: 25, d: 25.5, h: 47, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg
     seat: { w: 19, d: 19, t: 3, r: 4.5, panT: 0.8 }, back: { w: 18.5, h: 21, bottom: 20.5, r: 4.5, taper: 0.84, reclineDeg: 8, lumbar: 1.4, wrap: 1.6, tube: 0.55, z: -7.6 },
     head: { w: 12.5, h: 6.5, r: 2.4, wrap: 1.3, tiltDeg: 12, dz: 0.3 }, arm: { topElev: 25.5, x: 11, len: 12.5, tube: 0.42, bandW: 1.9, flareDeg: 3 },
     base: { r: 11, armW: 1.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 }, lift: { r: 1.05, pistonR: 0.55, top: 11 }, mech: { w: 7, d: 9, h: 1.6 } },
