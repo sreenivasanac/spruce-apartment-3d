@@ -263,6 +263,8 @@ export const FURNITURE = {
     head: { w: 12.5, h: 6.5, r: 2.4, wrap: 1.3, tiltDeg: 12, dz: 0.3 }, arm: { topElev: 25.5, x: 11, len: 12.5, tube: 0.42, bandW: 1.9, flareDeg: 3 },
     base: { r: 11, armW: 1.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 }, lift: { r: 1.05, pistonR: 0.55, top: 11 }, mech: { w: 7, d: 9, h: 1.6 } },
   futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 5, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
+    bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 2.4, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
+    consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 4 },
     bodyW: 61, backL: 18.5, backT: 6, backTuck: 1.5, backBand: 2, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
     consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 6 },
   // rot -90: the table's front (+Z, the side the top lifts toward) faces the futon sitter (plan -x)
