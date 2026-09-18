@@ -8,12 +8,15 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 ## Architecture
 - A1. Plan scale 0.761 in/px from the two labelled rooms; envelope 316.5×307" (675 sq ft).
 - A2. Exterior walls 6", interior 4.5".
-- A3. Kitchen ceiling dropped to 90" (photos show a drop; exact height unmeasured).
+- A3. (superseded) No dropped kitchen ceiling — IMG_3933/3934 show a single ceiling plane; `ENV.kitchenCeiling` = 96. Upper cabinets therefore stop well below the ceiling only by their own dark recess gap (kitchen item to reconcile).
 - A4. Linen-closet door is drawn at 45° on the plan; modelled in a flat wall facing the hall.
 - A5. Bedroom-door hinge side/swing taken from the plan; the door leaf is not visible in any photo.
 - A6. Entry-door interior face assumed white like the other doors (only the corridor side was photographed).
 - A7. Coat closet interior (no photo): shelf + rod like the other closets, bypass slab doors per plan.
-- A8. Slider 96×80, window 72×48 w/ 36" sill — scaled from plan + photo proportions.
+- A8. Slider 96×80 scaled from plan + photo proportions; bedroom window 72×56, sill 24", measured off IMG_3935.
+- A11. Hall-wall run (y 6→128): coat closet 44" / W/D 30" / 8.5" return / 28" hall door / 2.5" casing — W/D and door positions from IMG_3945 + IMG_3933; the coat closet (no photo) takes the remainder, so it is ~7" shorter than the plan draws it.
+- A12. Roof 10" and floor slab 8" thick (unseen structure; keeps low sun from leaking at the ceiling line).
+- A13. Pony-wall living face painted the accent gray like the adjoining S wall (IMG_3932 lower-left).
 - A9. Unit door plaque in IMG_3952 reads 113 while the plan is titled G-110; the photographed layout matches the plan un-mirrored, so the plan is used as drawn.
 - A10. Exterior scenery (pool, redwoods, pool house, lawn) is a stylised backdrop, not surveyed.
 
@@ -30,7 +33,14 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - C1. Closets: IMG_3938 shows the electrical panel and the centre shelf/rod bracket on the bedroom-closet BACK wall (bracket plate is seen face-on and the rod continues past it), not the side wall as the photo index says; modelled on the back wall just plan-right of the centre bracket (x 114.5–129, top 60"). Shelf top 69", rod centre ~65.6", 12" shelf on 1x4 cleats — same detail reused in linen and (unphotographed) coat closet.
 - C2. Laundry: units pushed to the plan-up side of the W/D closet (1" gap), front 1.5" behind the hall-wall face; 5.5" plan-down gap carries the flex duct, dryer cord + receptacle; washer outlet box/hoses low on that side wall are not visible in any photo (plausible placement).
 - F10. Lift-top table: marble/cubby end is on the sitter's LEFT (lift_top2.jpg taken from the sitter side, lift_top3.jpg shows the top travelling away from the marble-right camera); rot -90 so the top lifts toward the futon, moved to x=209 for ~13" knee gap. Panel 0.6", tops 0.7", legs 1.6"→1" dia with 3° splay + small centre support leg, 4-bar arm length (9.4") derived from liftRise/liftFwd with arms lying 8° from flat when closed; clear baby corner guards in the photos omitted.
-- F10. Desk details not user-measured (table.jpg): end panels 16.5" each, 1×1.5" steel tube, frame inset 0.5"/1", front + rear rails directly under the top (no low back bar — photo shows none). Chair sub-dimensions (seat 19×19, back 18.5×21 reclined 8°, arm top 25.5", base Ø≈24") estimated from office_chair1/2.jpg; overall 25W × 25.5D × 47H; gas-lift colour (black sleeve, chrome piston) not visible in photos.
-- Mandir: carcass details (cornice 4.75" in 4 steps, 1.5" sides, 3.25" plinth, 1.5" deck rail, 1" shelves w/ 1.25" nosing, 23" raised-panel overlay doors) scaled off bookcase.jpg; nominal 29.5×13×71 includes the cornice overhang, door pulls project ~0.65" further. Dressing (ASSUMED, after home_mandir_earlier.jpeg): saffron zari runner on the middle shelf with two gold-framed faceless aureole paintings, 3 small abstract brass murtis and a lit diya; Om picture + pink/white lotus tealight holders above; pair of 9" kuthu vilakku, puja plate with marigolds, bell and incense on the 28" deck. Nothing on the floor.
 - F11. Desk details not user-measured (table.jpg): end panels 16.5" each, 1×1.5" steel tube, frame inset 0.5"/1", front + rear rails directly under the top (no low back bar — photo shows none). Chair sub-dimensions (seat 19×19, back 18.5×21 reclined 8°, arm top 25.5", base Ø≈24") estimated from office_chair1/2.jpg; overall 25W × 25.5D × 47H; gas-lift colour (black sleeve, chrome piston) not visible in photos.
+- Mandir: carcass details (cornice 4.75" in 4 steps, 1.5" sides, 3.25" plinth, 1.5" deck rail, 1" shelves w/ 1.25" nosing, 23" raised-panel overlay doors) scaled off bookcase.jpg; nominal 29.5×13×71 includes the cornice overhang, door pulls project ~0.65" further. Dressing (ASSUMED, after home_mandir_earlier.jpeg): saffron zari runner on the middle shelf with two gold-framed faceless aureole paintings, 3 small abstract brass murtis and a lit diya; Om picture + pink/white lotus tealight holders above; pair of 9" kuthu vilakku, puja plate with marigolds, bell and incense on the 28" deck. Nothing on the floor.
 - F-futon. Futon refined to 66W × 33D × 31H sofa / 66 × 38.5 bed: seat body 61" wide (bolsters overhang 2.5" each side), back 17" long × 6" thick reclined 20°, 10" console; tuft grids 6×2 seat, 3×3 per back side (counted from futon2/3.jpg). Fold-out chrome rear stay under the back in bed mode is not visible in the photos (typical for this product). Converting to bed slides the futon ~5.5" forward so the back clears the wall.
+
+## Kitchen (builder)
+- K1. S-wall uppers run past the peninsula corner to y=128 (3 doors right of the microwave in IMG_3946; cabinet end visible in IMG_3932/3933/3948); door split 1+2 | 2 (over micro) | 2+1 from photo door count.
+- K2. OTR microwave bottom at 53" (hangs ~1" below the uppers, IMG_3946); cabinet above fills to the 87" upper top. Photo proportions (IMG_3934) suggest the real uppers are ~39-42" tall, i.e. the kitchen ceiling may be higher than the assumed 90" (A3) — uppers kept at 54-87 to fit the shell.
+- K3. Over-fridge cabinet 16.5" high (1" air gap over the fridge hinge caps). Fridge case charcoal, doors bowed 1.5".
+- K4. Dishwasher has a pocket handle in the black control strip (no bar handle visible in IMG_3933). Range knobs on the backguard per IMG_3946.
+- K5. Splash-wall outlets: 4 on the S wall at 44" (y = 42, 50, 93, 120); none modelled on the E wall (none visible).
+- K6. Blind corners are closed with 3/4" fillers; cabinet interiors are not modelled (doors closed), except the open-top sink base that holds the undermount bowl.

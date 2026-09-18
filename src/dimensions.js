@@ -15,7 +15,9 @@ export const ENV = {
   extWall: 6,
   intWall: 4.5,
   ceiling: 96, // user-confirmed 8'
-  kitchenCeiling: 90, // dropped kitchen ceiling, IMG_3934/3946
+  roofT: 10, floorSlabT: 8, // structure above the ceiling / below the floor (blocks grazing sun leaks, reads solid in dollhouse)
+  carpetT: 0.5, // carpet + pad stands ~1/2" proud of the LVP
+  kitchenCeiling: 96, // NO drop: IMG_3933/3934 show one continuous ceiling plane dining->kitchen->living (name kept for dependants)
   door: { h: 80, casing: 2.5, casingT: 0.6, slabT: 1.4 },
   baseboard: { h: 5.25, t: 0.6 },
   eye: 67, // 5'7" walk-mode eye height
@@ -25,7 +27,7 @@ export const ENV = {
 export const X = {
   northInt: 6, //         inside face of plan-left exterior wall
   bathE: 66, //           bath / tub alcove far side (60" tub)
-  coatClosetW: 73, //     coat closet + W/D back
+  coatClosetW: 70.5, //   coat closet + W/D back (bath-e/wd-w wall is one 4.5" wall x 66..70.5, as drawn on the plan)
   hallWallA: 101, //      wall holding coat-closet doors, W/D door, bedroom door (faces 101..105.5)
   hallWallB: 105.5,
   entryA: 107, entryB: 143, // 36" entry door opening
@@ -37,8 +39,8 @@ export const Y = {
   eastInt: 6, //          inside face of entry (plan-top) wall
   tubFront: 36,
   bathS: 66, bathWallB: 70.5,
-  coatClosetS: 58.5, wdN: 63, wdS: 93, wdWallB: 97.5,
-  bedDoorA: 97.5, bedDoorB: 128,
+  coatClosetS: 50, wdN: 54.5, wdS: 84.5, wdWallB: 89, // W/D closet 30" for the 23.5" stack + duct; ~14" of wall between W/D and hall-door openings (IMG_3945)
+  bedDoorA: 97.5, bedDoorB: 125.5, // 28" hall door; its casing butts the y=128 corner (IMG_3933)
   vanityA: 70.5, vanityB: 108,
   linenA: 112.5, linenB: 152,
   bedClosetWallA: 128, bedClosetA: 132.5, bedClosetDoors: 156.5,
@@ -55,65 +57,69 @@ export const ROOMS = {
   dining: { r: [105.5, 6, 220.5, 140], label: 'Dining / Entry', floor: 'lvp' },
   kitchen: { r: [225, 6, 310.5, 135.5], label: 'Kitchen', floor: 'lvp' },
   bedroom: { r: [6, 156.5, 148, 301], label: 'Bedroom 11\'10" x 12\'', floor: 'carpet' },
-  hall: { r: [28, 70.5, 101, 128], label: 'Hall', floor: 'lvp' },
+  hall: { r: [38.5, 89, 101, 128], label: 'Hall', floor: 'lvp' },
+  hallBath: { r: [28, 70.5, 66, 89], label: '', floor: 'lvp' }, // hall leg in front of bath door / vanity
   bedEntry: { r: [38.5, 128, 71.5, 156.5], label: '', floor: 'lvp' },
   bath: { r: [6, 6, 66, 66], label: 'Bath', floor: 'lvp' },
   vanity: { r: [6, 70.5, 28, 108], label: '', floor: 'lvp' },
   linen: { r: [6, 112.5, 34, 152], label: 'Closet', floor: 'lvp' },
-  coat: { r: [73, 6, 101, 58.5], label: 'Closet', floor: 'lvp' },
-  wd: { r: [70.5, 63, 101, 93], label: 'W/D', floor: 'lvp' },
+  coat: { r: [70.5, 6, 101, 50], label: 'Closet', floor: 'lvp' },
+  wd: { r: [70.5, 54.5, 101, 84.5], label: 'W/D', floor: 'lvp' },
   bedCloset: { r: [76, 132.5, 148, 156.5], label: 'Closet', floor: 'carpet' },
   deck: { r: [152.5, 307, 316.5, 373], label: 'Deck', floor: 'deck' },
 };
 
 // Walls: axis 'x' = runs along x at y=c (c = low face), axis 'y' = runs along y at x=c.
 // t = thickness, a..b = extent, h = height (default ceiling), openings: {a,b,sill,head,id}
+// accent: {side:'lo'|'hi', a?, b?} = darker gray paint on that face (lo = face at c, hi = face at c+t), optionally only a..b.
+// Walls butt (never overlap) at corners so no coplanar faces z-fight.
 export const WALLS = [
   // exterior
   { id: 'ext-east', axis: 'x', c: 0, t: 6, a: 0, b: 316.5, openings: [{ id: 'entry', a: 107, b: 143, sill: 0, head: 80 }] },
   { id: 'ext-west', axis: 'x', c: 301, t: 6, a: 0, b: 316.5, openings: [
-    { id: 'bedWindow', a: 40, b: 112, sill: 36, head: 84 },
+    { id: 'bedWindow', a: 47, b: 119, sill: 24, head: 80 }, // IMG_3935: 28.7" from bed|living wall, sill 24" (outlet at 13" checks the scale)
     { id: 'slider', a: 180, b: 276, sill: 0, head: 80 },
   ] },
-  { id: 'ext-north', axis: 'y', c: 0, t: 6, a: 0, b: 307, openings: [] },
-  { id: 'ext-south', axis: 'y', c: 310.5, t: 6, a: 0, b: 307, openings: [] },
+  { id: 'ext-north', axis: 'y', c: 0, t: 6, a: 6, b: 301, openings: [] },
+  { id: 'ext-south', axis: 'y', c: 310.5, t: 6, a: 6, b: 301, openings: [], accent: { side: 'lo', a: 140, b: 301 } }, // living accent wall, IMG_3932
   // bath
-  { id: 'bath-e', axis: 'y', c: 66, t: 7, a: 6, b: 66, openings: [] }, // plumbing wall bath|coat closet
-  { id: 'bath-s', axis: 'x', c: 66, t: 4.5, a: 6, b: 73, openings: [{ id: 'bathDoor', a: 36, b: 64, sill: 0, head: 80 }] },
-  // coat closet / WD / bedroom-door wall (x = 101..105.5)
+  { id: 'bath-e', axis: 'y', c: 66, t: 4.5, a: 6, b: 66, openings: [] }, // bath | coat closet (shower plumbing is on the N wall, IMG_3942)
+  { id: 'bath-s', axis: 'x', c: 66, t: 4.5, a: 6, b: 66, openings: [{ id: 'bathDoor', a: 39.5, b: 65.5, sill: 0, head: 80 }] }, // IMG_3937: leaf edge at x~41
+  // coat closet / WD / hall-door wall (x = 101..105.5)
   { id: 'hall-wall', axis: 'y', c: 101, t: 4.5, a: 6, b: 128, openings: [
-    { id: 'coatCloset', a: 8, b: 56, sill: 0, head: 80 },
-    { id: 'wdDoor', a: 64, b: 92, sill: 0, head: 80 },
-    { id: 'bedDoor', a: 97.5, b: 127.5, sill: 0, head: 80 },
+    { id: 'coatCloset', a: 8, b: 48, sill: 0, head: 80 },
+    { id: 'wdDoor', a: 55.5, b: 83.5, sill: 0, head: 80 },
+    { id: 'bedDoor', a: 97.5, b: 125.5, sill: 0, head: 80 },
   ] },
-  { id: 'coat-s', axis: 'x', c: 58.5, t: 4.5, a: 73, b: 101, openings: [] },
-  { id: 'wd-w', axis: 'y', c: 66, t: 4.5, a: 63, b: 97.5, openings: [] }, // W/D back wall (x 66..70.5)
-  { id: 'wd-s', axis: 'x', c: 93, t: 4.5, a: 66, b: 101, openings: [] },
+  { id: 'coat-s', axis: 'x', c: 50, t: 4.5, a: 70.5, b: 101, openings: [] },
+  { id: 'wd-w', axis: 'y', c: 66, t: 4.5, a: 66, b: 89, openings: [] }, // W/D back wall (x 66..70.5), continues bath-e
+  { id: 'wd-s', axis: 'x', c: 84.5, t: 4.5, a: 70.5, b: 101, openings: [] },
   // vanity / linen
   { id: 'linen-n', axis: 'x', c: 108, t: 4.5, a: 6, b: 38.5, openings: [] },
   { id: 'linen-front', axis: 'y', c: 34, t: 4.5, a: 112.5, b: 152, openings: [{ id: 'linenDoor', a: 120, b: 144, sill: 0, head: 80 }] },
   { id: 'linen-s', axis: 'x', c: 152, t: 4.5, a: 6, b: 38.5, openings: [] },
   // bedroom closet
   { id: 'bedcloset-n', axis: 'x', c: 128, t: 4.5, a: 71.5, b: 152.5, openings: [] },
-  { id: 'bedcloset-side', axis: 'y', c: 71.5, t: 4.5, a: 128, b: 159, openings: [] },
-  { id: 'bedcloset-front', axis: 'x', c: 156.5, t: 2.5, a: 76, b: 148, openings: [{ id: 'bedClosetDoors', a: 78, b: 146, sill: 0, head: 80 }] },
+  { id: 'bedcloset-side', axis: 'y', c: 71.5, t: 4.5, a: 132.5, b: 156.5, openings: [] },
+  { id: 'bedcloset-front', axis: 'x', c: 156.5, t: 2.5, a: 71.5, b: 148, accent: { side: 'hi' }, // closet wall reads darker gray, IMG_3937
+    openings: [{ id: 'bedClosetDoors', a: 79.5, b: 145.5, sill: 0, head: 80 }] }, // IMG_3937: 8.5" pier left, casing butts bed|living wall
   // bedroom | living
-  { id: 'bed-liv', axis: 'y', c: 148, t: 4.5, a: 128, b: 301, openings: [] },
+  { id: 'bed-liv', axis: 'y', c: 148, t: 4.5, a: 132.5, b: 301, openings: [] },
   // kitchen stubs + pony wall
   { id: 'stub-top', axis: 'y', c: 220.5, t: 4.5, a: 6, b: 40, openings: [] },
   { id: 'stub-bot', axis: 'y', c: 220.5, t: 4.5, a: 106, b: 140, openings: [] },
-  { id: 'pony', axis: 'x', c: 135.5, t: 4.5, a: 225, b: 310.5, h: 34.5, openings: [] },
+  { id: 'pony', axis: 'x', c: 135.5, t: 4.5, a: 225, b: 310.5, h: 34.5, openings: [], accent: { side: 'hi' } }, // living face gray, IMG_3932
 ];
 
 // Doors (swing data for trim/doors module). hinge: which end of the opening ('a'|'b'), swing: +1/-1 along wall normal.
 export const DOORS = {
   entry: { w: 36, wall: 'ext-east', hinge: 'a', swingInto: 'dining', openDeg: 0, type: 'slab-entry' },
-  bathDoor: { w: 28, wall: 'bath-s', hinge: 'b', swingInto: 'bath', openDeg: 88, type: 'slab' },
-  bedDoor: { w: 30, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 84, type: 'slab' }, // 84: lever clears the W/D side wall
+  bathDoor: { w: 26, wall: 'bath-s', hinge: 'b', swingInto: 'bath', openDeg: 88, type: 'slab' },
+  bedDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 84, type: 'slab' }, // 84: lever clears the W/D side wall
   wdDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'dining', openDeg: 100, type: 'louver' }, // IMG_3945: hinged on the entry-side jamb, standing open
   linenDoor: { w: 24, wall: 'linen-front', hinge: 'b', swingInto: 'hall', openDeg: 0, type: 'slab' }, // IMG_3940/3941: lever on the vanity side
-  coatCloset: { w: 48, wall: 'hall-wall', type: 'bypass-slab' },
-  bedClosetDoors: { w: 68, wall: 'bedcloset-front', type: 'bypass-mirror' },
+  coatCloset: { w: 40, wall: 'hall-wall', type: 'bypass-slab' },
+  bedClosetDoors: { w: 66, wall: 'bedcloset-front', type: 'bypass-mirror' },
 };
 
 // Glazing
@@ -125,7 +131,7 @@ export const SLIDER = {
   blindsStackAt: 'a', blindsStack: [160, 183], vanes: 34, vaneW: 3.4, vaneBottom: 1.5, vaneTop: 88,
 };
 export const BED_WINDOW = {
-  a: 40, b: 112, sill: 36, head: 84, frame: 2, frameD: 3, sash: 1.6, sashT: 1.2, mullion: 2,
+  a: 47, b: 119, sill: 24, head: 80, frame: 2, frameD: 3, sash: 1.6, sashT: 1.2, mullion: 2,
   blindValance: { h: 3, d: 2.5, w: 76, elev: 83 }, blind: { slats: 26, slatW: 2, slatPitch: 0.15, railH: 0.7, cordDrop: 24 },
 };
 // Door joinery + hardware (openings item). Shell openings are the FINISHED openings; jamb = thin white lining.
@@ -136,7 +142,7 @@ export const DOOR_HW = {
   entry: { slabT: 1.75, undercut: 0.6, deadboltElev: 45, deadbolt: { w: 2.7, h: 5.2, t: 1 }, knockerElev: 58, knocker: { w: 1.4, h: 3.6 },
     threshold: { h: 0.5, out: 0.75 }, corridorCasing: { w: 3.5, t: 0.75 }, sidePanel: { w: 13, h: 78, stile: 1.75, midRail: 30, plaque: 5, plaqueElev: 44 } },
   louver: { stile: 4.25, topRail: 4.5, midRail: [36.5, 41.5], botRail: 5.5, pitch: 1.1, slatW: 1.5, slatT: 0.22, tiltDeg: 38, leverElev: 33 },
-  bypass: { overlap: 1, panelT: 1.125, trackH: 1.5, trackD: 3, pullR: 1.1, pullElev: 38, pullInset: 3,
+  bypass: { carpetT: 0.5, trackGap: 0.15, overlap: 1, panelT: 1.125, trackH: 1.5, trackD: 3, pullR: 1.1, pullElev: 38, pullInset: 3,
     mirror: { overlap: 1.25, panelT: 1, stile: 1.25, trackD: 2.3, botTrackH: 0.4, peek: 1.5 } },
 };
 export const DECK = {
@@ -147,7 +153,7 @@ export const DECK = {
   // railing build-up (IMG_3926/3927): slats outside, 2x apron + raised bottom rail inside, 4x4 posts, 2x6 cap
   capT: 1.5, slatsFront: 18, slatsReturn: 7, slatBelowFloor: 8, apronH: 5.5, bottomRailH: 3.5, bottomRailGap: 3, post: { w: 3.5, d: 2.5 }, postsAt: [0.27, 0.5, 0.73],
   slabT: 10, fasciaT: 1.5, skinT: 0.6, // stucco skin over the framed wall
-  soffitElev: 94, soffitSlabT: 12, dripEdge: { h: 2, t: 0.75, tooth: 3 },
+  soffitElev: 94, dripEdge: { h: 2, t: 0.75 }, // soffit = underside of the balcony slab above
   partition: { t: 3, gapBelow: 5, frameW: 2.5, battenW: 2.5, battenT: 0.75, pitch: 8.5, post: 3.5 }, // IMG_3930
   sconce: { dia: 5, h: 9, x: 303, elev: 85, plateW: 5.5, plateH: 11, bandH: 0.8 }, // cylinder sconce above the partition (IMG_3930)
   disconnect: { w: 5, h: 8, d: 3, x: 166, elev: 44 }, linesetDia: 1.1, lineHide: { w: 3, d: 2.5, x: 177 },
@@ -157,16 +163,16 @@ export const DECK = {
 // Stylised exterior backdrop (assumption A10): positions estimated by perspective from IMG_3926-3930. Plan inches.
 export const SCENERY = {
   redwoods: [ // x, y, base diameter; first two are the trunks framing the pool in IMG_3929
-    [318, 470, 44], [125, 500, 40], [420, 1180, 40], [-60, 1350, 36], [640, 640, 38], [-230, 760, 34], [60, 1700, 40], [-420, 1250, 36], [330, 1750, 38], [900, 1500, 40],
+    [300, 470, 44], [105, 500, 40], [420, 1180, 40], [-60, 1350, 36], [640, 640, 38], [-230, 760, 34], [60, 1700, 40], [-420, 1250, 36], [330, 1750, 38], [900, 1500, 40],
   ],
-  redwoodH: 1100, mulchR: 85,
-  pool: { cx: 190, cy: 960, a: 215, b: 95, bend: 75, coping: 9, waterDrop: 3 },
-  poolDeck: { cx: 210, cy: 940, r: 330, apronTo: [520, 700, 900, 1230], joint: 120, lift: 1 },
+  redwoodH: 1100, canopyFrom: 230, mulchR: 85, // canopyFrom = lowest boughs above grade
+  pool: { cx: 190, cy: 975, a: 215, b: 95, bend: 75, coping: 9, waterDrop: 3 },
+  poolDeck: { cx: 200, cy: 965, r: 330, apronTo: [330, 640, 980, 1260], joint: 120, lift: 4 },
   path: { w: 50 },
   poolHouse: { x0: 520, y0: 860, w: 400, d: 340, wallH: 104, eaveOver: 34, fasciaH: 14, roofBase: 300, roofH: 150 },
   loungersNear: 6, loungersFar: 5, lounger: { w: 26, l: 76, seatH: 13, backL: 28, backDeg: 50 },
   umbrellas: [[30, 1150], [-40, 1080], [420, 1190], [-110, 1190]], umbrella: { r: 54, h: 96, canopyH: 20 },
-  lampPosts: [[166, 640], [560, 760]], lampH: 90,
+  lampPosts: [[166, 605], [-150, 700]], lampH: 90,
   farTreeRing: [1700, 3200], farTreeCount: 70, farTreeH: [450, 1100],
   shrubBed: { y0: 309, y1: 420 }, // mulch + shrubs along the building, below the bedroom window and the deck
   skyR: 9000, lawnR: 5000,
@@ -189,11 +195,11 @@ export const KITCHEN = {
   pull: { dia: 0.5, standoff: 1.25, postInset: 1, edge: 2, end: 2.25 }, // bar Ø, clear projection, post inset from bar end, from door edge, from door top/bottom
   upperCornerX: 298, upperFiller: 1.5, // S-wall uppers run past the peninsula corner (IMG_3932 left edge, IMG_3933, IMG_3948 top-left)
   southUppers: [[20, 31.8, 1, 'r'], [31.8, 55.5, 2], [85.5, 109.5, 2], [109.5, 128, 1, 'l']], // [y0, y1, doors, pullSide] (IMG_3946 door count)
-  fridgeD: { caseD: 26.5, doorT: 3, bulge: 1.5, gap: 0.2, split: 27, grille: 3.5, hingeH: 0.75, handleR: 0.55, handleOff: 2.4, handleL: 25, freezerHandleW: 29, badge: 1.1 },
+  fridgeD: { caseD: 26.3, doorT: 3, bulge: 1.5, gap: 0.2, split: 27, grille: 3.5, hingeH: 0.75, handleR: 0.55, handleOff: 2.4, handleL: 25, freezerHandleW: 29, badge: 1.1 },
   rangeD: { bodyD: 25, doorT: 2, glassT: 0.4, drawerTop: 11, doorTop: 33, window: [20, 11], handleDia: 1, handleOff: 2.3, backguardD: 2.5, knobDia: 1.9, knobL: 1.2, display: [9, 3], burners: [[-7.2, 7.5, 4.5], [7.2, 7.5, 3.2], [-7.2, 19, 3.2], [7.2, 19, 4.5]] }, // burners: [x, z from back, radius]
   mwD: { doorW: 22.6, ventH: 1.3, window: [16, 8.5], handleDia: 0.9, handleL: 12, handleOff: 1.6 },
   dwD: { w: 23.75, controlH: 5, doorBottom: 4.5 },
-  faucet: { y: 132, colR: 0.85, colH: 9.5, spoutR: 0.5, spoutL: 5, spoutDropDeg: 22, leverL: 3.5, airGapDx: -5.5, airGapR: 0.85, airGapH: 2.2 },
+  faucet: { y: 132, colR: 0.85, colH: 9.5, spoutR: 0.5, spoutL: 4.2, spoutDropDeg: 8, swivelDeg: 35, headH: 2.4, leverL: 2.2, airGapDx: -5.5, airGapR: 0.85, airGapH: 2.2 },
   outlets: { elev: 44, plate: [2.75, 4.5, 0.25], southY: [42, 50, 93, 120] }, // on the S splash wall (IMG_3946, IMG_3933)
 };
 
@@ -202,15 +208,15 @@ export const BATH = {
   // one-piece fiberglass tub/shower (IMG_3942/3944): valve end at the N wall, apron faces +y
   tub: { l: 60, w: 30, h: 17, surroundH: 74, wallT: 2, cornerR: 4, edgeR: 0.8, topBevel: 0.5,
     rimFront: 4, rimBack: 2.5, rimEnd: 3, basinR: 5, basinSlope: 3.5, floorElev: 1.5, apronRecess: 0.5, apronBand: 4.5, apronBase: 1.75,
-    niche: { w: 6.5, bottom: 32, top: 46, depth: 1.5, fromValveWall: 35, barElev: 37 } },
+    niche: { w: 6.5, bottom: 26, top: 40, depth: 1.5, fromValveWall: 30, barElev: 31.5 } }, // IMG_3944: centred on the back wall
   showerRod: { elev: 76, bow: 6, dia: 1, setback: 1, flange: 2.6 },
-  showerHead: { elev: 75, armElev: 70, dia: 6, reach: 12, armDia: 0.7 },
+  showerHead: { elev: 75, armElev: 72, dia: 6, reach: 12, armDia: 0.7 }, // IMG_3943: flange just under the surround top
   valve: { elev: 28, dia: 7 }, spout: { elev: 21, l: 5.5, dia: 1.7 }, overflow: { elev: 12.5, dia: 2.8 }, drain: { dia: 2.8, fromValveWall: 11 },
   toilet: { cy: 51, w: 17, l: 28.5, seatH: 16.5, tankH: 29, tankD: 8.25, tankGap: 0.75, tankBottom: 14.5, lidT: 1.4, rimH: 15, bowlW: 14, bowlL: 20.5,
     stop: { elev: 6, dy: 10 } },
-  towelBar: { elev: 50, l: 24, standoff: 3, dia: 0.75 },
-  paperHolder: { x: 21, elev: 24, arm: 6, standoff: 3 }, // IMG_3950: single-post holder on the bath S wall
-  doorStop: { y: 46, elev: 2.6, l: 3 },
+  towelBar: { elev: 58, l: 24, standoff: 3, dia: 0.75 }, // IMG_3942: ~16" below the surround top
+  paperHolder: { x: 24, elev: 24, arm: 6, standoff: 3 }, // IMG_3950: single-post holder on the bath S wall
+  doorStop: { leverBackset: 2.75, elev: 36, dia: 2.2, t: 0.4 }, // wall bumper where the bath-door lever lands
   vanity: { w: 37.5, d: 22, h: 34.5, topT: 1.25, backsplash: 4, splashT: 0.75, cabD: 20.25, doorT: 0.75, toeKickH: 4, toeKickRecess: 3,
     falseDrawerH: 6, reveal: 0.125, filler: 0.75, pullStandoff: 1.2, pullDia: 0.45,
     sink: { w: 17, d: 11.5, depth: 5.5, r: 1.2, fromBack: 6.5 }, faucet: { h: 6, dia: 1.9, reach: 4.5, fromBack: 3.3 },
@@ -246,12 +252,41 @@ export const FIXTURES = {
   underCab: { elev: 53.5, inset: 4, w: 0.6, t: 0.3, runs: [ // warm LED tape under the uppers (IMG_3946); a..b along the wall
     { id: 'east', wall: 'E', a: 261.5, b: 310 }, { id: 'south-1', wall: 'S', a: 6.5, b: 55.5 }, { id: 'south-2', wall: 'S', a: 85.5, b: 110 } ] },
   diningTrack: { l: 44, cx: 168, cy: 40, heads: 4, bar: 0.8, drop: 3, canopyDia: 5, canopyH: 1.2, headDia: 2.3, headL: 3.8, stem: 1.6 }, // bar runs along x (IMG_3934)
-  hallFlush: { dia: 13, h: 3.75, cx: 70, cy: 100 },
+  hallFlush: { dia: 13, h: 3.75, cx: 55, cy: 112 }, // seen through the bedroom doorway in IMG_3945 and left of centre from the bedroom in IMG_3937
   entryFlush: { dia: 13, h: 3.75, cx: 125, cy: 30 },
   bathFlush: { dia: 13, h: 3.75, cx: 36, cy: 51 }, // ASSUMED (no photo of the bath ceiling)
   vanityBar: { dia: 4.5, cage: 2.2, standoff: 1.5, plateH: 4.5, plateT: 0.6 }, // length + elevation: BATH.vanity.light (IMG_3941)
   miniSplit: { w: 32, h: 11.5, d: 8.5, elevTop: 92, wall: 'bed-liv', cy: 278 }, // bedroom head, IMG_3935
   outlets: { elev: 14, switchElev: 46 },
+};
+
+// ---------------------------------------------------------------- finishes (baseboards, wall plates, detector, chime, mini-split detail)
+export const FINISHES = {
+  lvp: { plankW: 6, plankL: 48, tile: 96 }, // texture tile = 16 rows x 2 planks
+  carpetTile: 36, wallTextureTile: 24, // procedural texture tile sizes
+  baseboard: { chamfer: 0.12, minRun: 1, probe: 0.25 }, // eased top edge; runs shorter than minRun are dropped; probe = sampling step of the run finder
+  plate: { w: 2.75, w2: 4.56, h: 4.5, t: 0.2, r: 0.14, bevel: 0.05 }, // 1-gang / 2-gang thermoplastic wall plates
+  // p = point on the wall face (plan x,y), n = face normal (plan), elev = plate centre. kind: outlet | gfci | rocker | rocker2 | coax
+  plates: [
+    { id: 'living-s-outlet', kind: 'outlet', p: [310.5, 150], n: [-1, 0], elev: 14 }, // IMG_3932 low, just past the peninsula
+    { id: 'living-s-cable', kind: 'coax', p: [310.5, 284], n: [-1, 0], elev: 14 }, // IMG_3932 near the slider corner
+    { id: 'dining-e-outlet', kind: 'outlet', p: [206, 6], n: [0, 1], elev: 14 }, // IMG_3934 near the stub corner
+    { id: 'stub-switch', kind: 'rocker2', p: [220.5, 112], n: [-1, 0], elev: 48 }, // IMG_3933/3934 kitchen + dining lights
+    { id: 'hall-switch', kind: 'rocker', p: [94, 128], n: [0, -1], elev: 48 }, // IMG_3933, seen through the hall doorway
+    { id: 'vanity-gfci', kind: 'gfci', p: [19, 70.5], n: [0, 1], elev: 44 }, // IMG_3941 alcove side wall
+    { id: 'vanity-switch', kind: 'rocker2', p: [32.5, 70.5], n: [0, 1], elev: 48 }, // IMG_3941 between vanity and bath door
+    { id: 'bed-s-outlet-1', kind: 'outlet', p: [148, 168], n: [-1, 0], elev: 14 }, // IMG_3937/3939
+    { id: 'bed-s-outlet-2', kind: 'outlet', p: [148, 266], n: [-1, 0], elev: 14 }, // IMG_3935/3939 below the mini-split
+    { id: 'bed-s-cable', kind: 'coax', p: [148, 281], n: [-1, 0], elev: 14 }, // IMG_3939
+    { id: 'bed-w-outlet', kind: 'outlet', p: [28, 301], n: [0, -1], elev: 14 }, // IMG_3935 between window and N corner
+    { id: 'bed-n-outlet-1', kind: 'outlet', p: [6, 182], n: [1, 0], elev: 14 }, // IMG_3935 bottom right
+    { id: 'bed-n-outlet-2', kind: 'outlet', p: [6, 262], n: [1, 0], elev: 14 }, // IMG_3937 bottom left
+  ],
+  transition: { w: 1.75, h: 0.7 }, // vinyl reducer LVP -> carpet across the bedroom entry (IMG_3937)
+  smoke: [{ id: 'entry', cx: 114, cy: 80, dia: 5.5, h: 1.6, button: 0.9 }], // IMG_3933 ceiling, outside the W/D + hall doors
+  chime: { cx: 76.2, elev: 87.2, w: 2.75, h: 3.5, d: 1, r: 0.3, slots: 5, slotW: 0.07, slotH: 0.55, slotPitch: 0.22 }, // IMG_3937 on the pier above/left of the closet head
+  miniSplit: { endR: 0.5, grooveFrac: 0.6, grooveH: 0.12, louverD: 2.4, louverT: 0.2, louverFrac: 0.88,
+    display: { w: 2.2, h: 0.5 }, badge: { w: 1.8, h: 0.35 }, remote: { w: 2.4, h: 5.2, d: 0.8, cy: 290, elev: 76, lcd: [1.5, 1.3] } }, // IMG_3939: remote cradle below the head
 };
 
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
@@ -265,8 +300,6 @@ export const FURNITURE = {
   futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 5, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
     bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 2.4, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
     consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 4 },
-    bodyW: 61, backL: 18.5, backT: 6, backTuck: 1.5, backBand: 2, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
-    consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 6 },
   // rot -90: the table's front (+Z, the side the top lifts toward) faces the futon sitter (plan -x)
   liftTop: { w: 41, d: 19.5, h: 16.5, legH: 5.5, liftRise: 7.5, liftFwd: 6, marbleW: 15, pos: [209, 222], rot: -90, // ASSUMED; ~13" knee gap to the futon front
     topT: 0.7, panelT: 0.6, fasciaInset: 0.4, topGap: 0.08, edgeR: 0.04, cornerR: 0.1,
@@ -281,12 +314,18 @@ export const FURNITURE = {
     // puja articles (ASSUMED typical sizes, styled after home_mandir_earlier.jpeg)
     decor: { runnerDrop: 2.5, runnerMargin: 0.75, frameBar: 0.8, frameT: 0.6, frameLean: 7, pic: [7, 9], omPic: [7.5, 9],
       murtiH: 5.2, smallMurtiH: 3.4, diyaR: 1.15, vilakkuH: 9, lotusH: 3.6, plateR: 2.9, bellH: 3.6, incenseL: 8, flameH: 0.95 } },
-  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 225], rot: 90 },
+  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 225], rot: 90,
+    // bed item: steel sections (full_size_bedframe.jpg), headboard panel elevations, soft goods
+    post: 1.5, railH: 2.5, railT: 1, slats: 9, slat: 0.75, centreRail: { w: 1.5, h: 1.5 }, centreLegs: 3, leg: 1.25, footLegInset: 5, foot: { w: 1.6, h: 0.35 }, steelR: 0.1,
+    panel: { bottom: 23.5, top: 37, t: 1.9, channels: 9, r: 0.55, bar: 0.75, usb: { w: 3.2, h: 1.6, t: 0.3, inset: 1.3 } },
+    mattR: 1.6, sheetT: 0.15, sheetDrop: 10.2,
+    duvet: { th: 1.4, side: 9, foot: 8.5, foldAt: 27, foldW: 11, hemR: 0.4, wrinkle: 0.22, flare: 0.18, cornerDrop: 11.5 },
+    pillow: { w: 25.5, d: 18.5, h: 6.5, tiltDeg: 20, gap: 0.6 } },
   // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
-  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5 }, legDia: 1.6, pos: [135.7, 238], rot: -90 }, // 47" user-given
+  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, pos: [135.7, 238], rot: -90 }, // 47" user-given
   wifeChair: { module: 'chair', w: 25, d: 25, h: 47, seatH: 18.5, pos: [108, 238], rot: 90 },
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
-  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], pos: [16.1, 279.5], rot: 90 },
+  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, frameW: 1.55, panelR: 1.0, handle: { w: 1.05, h: 3.6, proj: 0.45, bar: 0.22 }, ribPitch: 0.85, ribW: 0.3, ribT: 0.12, rodDia: 0.75, rodDrop: 2.6, openDeg: 105, pos: [16.1, 279.5], rot: 90 },
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.

@@ -13,21 +13,21 @@ All numbers live in `src/dimensions.js` (inches). This file explains where they 
 - Where the plan and fixtures disagree, fixtures win: tub alcove forced to 60" (plan scales to 65"), W/D closet sized for 24" units, doors to standard widths.
 
 ## Wall segments
-See `WALLS` in `src/dimensions.js` — each entry: axis, low-face coordinate `c`, thickness `t`, extent `a..b`, openings `{a,b,sill,head}`. Exterior 6", interior 4.5", bath/coat-closet plumbing wall 7", closet door-track wall 2.5", pony wall 34.5" high.
+See `WALLS` in `src/dimensions.js` — each entry: axis, low-face coordinate `c`, thickness `t`, extent `a..b`, openings `{a,b,sill,head}`. Exterior 6", interior 4.5" (bath/coat-closet wall too — plan draws it thin and the shower plumbing is on the N wall), closet door-track wall 2.5", pony wall 34.5" high. Walls butt at corners (no overlapping boxes). `accent: {side, a, b}` marks darker-gray faces (living S wall y 140–301, pony wall living face, bedroom-closet front).
 
 | Element | Value | Source |
 |---|---|---|
 | Ceiling | 96" | user-confirmed; door-to-ceiling ratio 3933/3945 |
-| Kitchen dropped ceiling | 90" | 3934, 3946, 3947 (soffit line at stubs) |
+| Kitchen ceiling | 96" — **no drop**; one continuous ceiling plane dining→kitchen→living (`ENV.kitchenCeiling` kept = 96) | 3933, 3934 (contrast-boosted crops) |
 | Entry door | 36×80, opening x 107–143, hinge plan-left, swings in | plan, 3952 |
-| Bath door | 28×80, hinge plan-right, swings into bath against E wall | plan arc, 3942 |
-| Bedroom door | 30×80 in hall wall (x=101), hinge at top end, swings into hall | plan (diagonal leaf), 3945 |
-| W/D door | 28×80 full-louver, hinge plan-down side, swings to dining | 3945 |
+| Bath door | 26×80 (opening x 39.5–65.5; leaf edge measured at x≈41 in 3937), hinge plan-right, swings into bath against E wall | plan arc, 3942 |
+| Bedroom (hall) door | 28×80 in hall wall (x=101), opening y 97.5–125.5, casing butts the y=128 corner (3933), hinge at top end, swings into hall | plan (diagonal leaf), 3945 |
+| W/D door | 28×80 full-louver, opening y 55.5–83.5, hinge plan-up (entry) side, swings to dining; ~14" of wall between it and the hall doorway; closet 30.5×30 | 3945 |
 | Linen door | 24×80 slab (plan draws it at 45°; simplified to flat wall) | 3940 |
-| Coat closet | 48" bypass slab doors facing entry | plan |
-| Bedroom closet | 68" bypass mirror doors, white frame | 3937, 3938 |
+| Coat closet | 40" bypass slab doors facing entry (closet 30.5×44; shortened from the plan so the W/D closet fits the real 23.5" stack) | plan, 3945 |
+| Bedroom closet | 66" bypass mirror doors (x 79.5–145.5; 8" pier on the hall side, casing butts the bed/living wall), white frame | 3937, 3938 |
 | Slider | 96×80 at x 180–276 (27.5" from bed wall, 34.5" from S wall) | plan px 287–410; 3925, 3932 |
-| Bedroom window | 72×48, sill 36", x 40–112 | plan px 97–190; 3935, 3939 |
+| Bedroom window | 72×56, sill 24", head 80", x 47–119 (28.7" from the bed/living wall) | 3935 (fronto-parallel wall, outlet at 13" validates the scale); overrides plan |
 | Kitchen opening | 66" between 34" stubs | plan, 3934 |
 | Deck | 164" × 66", rail 42", ~60" above grade | plan, 3926–3930 |
 | Counters | 36" high, 25.5" deep, 4" splash; uppers 54"–87", 12.5" deep | standard + 3946 |

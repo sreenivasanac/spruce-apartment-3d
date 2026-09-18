@@ -55,10 +55,10 @@ function lvpMap(kind) {
           }
           ctx.fillStyle = 'rgba(8,5,4,0.9)'; ctx.fillRect(x0, i * ph, 2, ph); // butt joint
         } else {
-          ctx.fillStyle = `rgb(${120 + r() * 50 | 0},0,0)`; ctx.fillRect(x0, i * ph, s, ph);
+          { const q = 120 + r() * 50 | 0; ctx.fillStyle = `rgb(${q},${q},${q})`; ctx.fillRect(x0, i * ph, s, ph); } // grey: three.js reads roughness from G
         }
       }
-      ctx.fillStyle = kind === 'color' ? 'rgba(8,5,4,0.9)' : 'rgb(230,0,0)';
+      ctx.fillStyle = kind === 'color' ? 'rgba(8,5,4,0.9)' : 'rgb(230,230,230)';
       ctx.fillRect(0, i * ph, s, 2); // long joint
     }
   }, { srgb: kind === 'color' });
@@ -93,7 +93,7 @@ const tex = {
   quartz: canvasTex(512, (ctx, s) => {
     noise(ctx, s, [128, 126, 122], 14, 8);
     const r = rng(9);
-    for (let i = 0; i < 500; i++) { ctx.fillStyle = `rgba(${r() < 0.7 ? '190,188,182' : '90,88,86'},${0.35 + r() * 0.4})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 1 + r() * 3.5, 1 + r() * 2.5, r() * 3, 0, 7); ctx.fill(); }
+    for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(${r() < 0.7 ? '176,174,168' : '96,94,92'},${0.18 + r() * 0.3})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 0.8 + r() * 2.6, 0.8 + r() * 1.8, r() * 3, 0, 7); ctx.fill(); } // kitchen item: finer, lower-contrast speckle per IMG_3949
   }),
   brushed: canvasTex(256, (ctx, s) => { const r = rng(11); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},${r() < 0.5 ? 255 : 0},0.06)`; ctx.fillRect(r() * s, 0, 1, s); } }, { srgb: false }),
 };
@@ -109,15 +109,15 @@ export const MAT = {
   // architecture
   wall: std({ color: 0xb8b1a3, roughness: 0.92, bumpMap: tex.orangePeel, bumpScale: 0.6, name: 'wall-greige' }),
   wallAccent: std({ color: 0x8d8c88, roughness: 0.92, bumpMap: tex.orangePeel, bumpScale: 0.6, name: 'wall-accent-gray' }),
-  ceiling: std({ color: 0xd9d5cb, roughness: 0.97, bumpMap: tex.stucco, bumpScale: 0.8, name: 'ceiling' }),
+  ceiling: std({ color: 0xd9d5cb, roughness: 0.97, bumpMap: tex.stucco, bumpScale: 0.22, name: 'ceiling' }), // fine spray texture; photos read almost smooth
   trim: std({ color: 0xeeece6, roughness: 0.45, name: 'trim-white-semigloss' }),
   door: std({ color: 0xefede8, roughness: 0.4, name: 'door-white' }),
   entryDoor: std({ color: 0x8b877f, roughness: 0.5, name: 'entry-door-gray' }),
   lvp: std({ map: tex.lvp, roughnessMap: tex.lvpRough, roughness: 0.62, metalness: 0, name: 'lvp-espresso' }),
   carpet: std({ map: tex.carpet, bumpMap: tex.carpetBump, bumpScale: 1.2, roughness: 1, name: 'carpet-greige' }),
   deckFloor: std({ color: 0x6f7377, roughness: 0.7, name: 'deck-gray-paint' }),
-  deckRail: std({ color: 0x3a3d3e, roughness: 0.75, name: 'deck-rail-charcoal' }),
-  stuccoExt: std({ color: 0xcfc9b8, roughness: 1, bumpMap: tex.stucco, bumpScale: 2.5, name: 'stucco-exterior' }),
+  deckRail: std({ color: 0x4b4e50, roughness: 0.75, name: 'deck-rail-charcoal' }),
+  stuccoExt: std({ color: 0xcfc9b8, roughness: 1, bumpMap: tex.stucco, bumpScale: 1.1, name: 'stucco-exterior' }),
   // kitchen / bath
   cabinet: std({ color: 0xf1f0ec, roughness: 0.55, name: 'cabinet-white-thermofoil' }),
   toeKick: std({ color: 0xd8d6d0, roughness: 0.7, name: 'toe-kick' }),
@@ -153,6 +153,8 @@ export const MAT = {
   cabinetGap: std({ color: 0x2a2927, roughness: 1, name: 'cabinet-reveal-shadow' }),
   applianceCase: std({ color: 0x2b2c2e, roughness: 0.6, metalness: 0.3, name: 'appliance-case-charcoal' }),
   burner: std({ color: 0x34343a, roughness: 0.3, name: 'cooktop-burner-print' }),
+  applianceSteel: std({ color: 0xd2d4d6, metalness: 0.8, roughness: 0.34, roughnessMap: tex.brushed, envMapIntensity: 3, name: 'appliance-stainless' }), // IBL is dim (0.35) so boost reflections to read as bright steel
+  sinkSteel: std({ color: 0x8e9194, metalness: 0.3, roughness: 0.5, envMapIntensity: 0.6, name: 'sink-stainless-satin' }), // mostly diffuse: the bowl sits right under the ceiling fixture and blows out as a mirror
   // mandir: cherry with grain along U (mandir.js maps U along each board's length), darkened antique brass, silk runner base
   cherryGrain: std({ map: cherryMap(), roughness: 0.42, name: 'cherry-grain' }),
   antiqueBrass: std({ color: 0x8f6d34, metalness: 1, roughness: 0.42, name: 'antique-brass' }),
@@ -173,8 +175,9 @@ export const MAT = {
   railTan: std({ color: 0xa89a82, roughness: 0.8, name: 'neighbour-rail-tan' }),
   roofEave: std({ color: 0x8c8980, roughness: 0.9, name: 'roof-eave' }),
   // openings item: cheap window glass (no transmission pass; never casts shadows), insect screen, corridor-side door paint
-  glassPane: phys({ color: 0xdfe8e6, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.1, depthWrite: false, envMapIntensity: 2.5, specularIntensity: 1, side: THREE.DoubleSide, name: 'window-glass' }),
+  glassPane: phys({ color: 0xdfe8e6, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.06, depthWrite: false, envMapIntensity: 1.5, specularIntensity: 1, side: THREE.DoubleSide, name: 'window-glass' }),
   insectScreen: std({ color: 0x3a3c3e, roughness: 1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, name: 'insect-screen' }),
   corridorTrim: std({ color: 0x8f8a80, roughness: 0.5, name: 'corridor-door-frame-taupe' }),
+  mirrorEdge: std({ color: 0x9fb0a8, roughness: 0.15, metalness: 0.3, name: 'mirror-glass-edge' }), // bathroom: polished edge of the frameless mirror
 };
 export const TEX = tex;
