@@ -295,10 +295,14 @@ export const FURNITURE = {
   desk: { w: 63, d: 24, h: 29, topT: 0.7, leg: 1.5, pos: [298, 232], rot: -90, // w/d/h user-measured; rest from table.jpg
     endPanelW: 16, seamW: 0.03, tubeT: 1, frameInset: 0.5, railInset: 1, railH: 1.5, footH: 0.5, footDia: 1.2, edgeR: 0.06, tubeR: 0.12, woodTile: 24,
     clip: [2.2, 1.5, 0.25], clipLap: 0.5, boltDia: 0.35, boltT: 0.12, boltPitch: 1.2 }, // clip = mid-span connector plate [w,h,t], laps 0.5" onto the front rail => hangs 1" below it
-  chair: { w: 25, d: 25.5, h: 47, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg
-    seat: { w: 19, d: 19, t: 3, r: 4.5, panT: 0.8 }, back: { w: 18.5, h: 21, bottom: 20.5, r: 4.5, taper: 0.84, reclineDeg: 8, lumbar: 1.4, wrap: 1.6, tube: 0.55, z: -7.6 },
-    head: { w: 12.5, h: 6.5, r: 2.4, wrap: 1.3, tiltDeg: 12, dz: 0.3 }, arm: { topElev: 25.5, x: 11, len: 12.5, tube: 0.42, bandW: 1.9, flareDeg: 3 },
-    base: { r: 11, armW: 1.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 }, lift: { r: 1.05, pistonR: 0.55, top: 11 }, mech: { w: 7, d: 9, h: 1.6 } },
+  chair: { w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg; w/d/h = resulting envelope (h follows back + head.gap + headrest)
+    seat: { w: 19, d: 19, t: 3, r: 4.5, panT: 0.8, crown: 0.6, roll: 1.1, waterfall: 2.4, rearDrop: 0.5 },
+    back: { w: 18.5, h: 20, bottom: 20.5, r: 4.5, taper: 0.84, reclineDeg: 8, lumbar: 1.4, wrap: 1.6, rimW: 0.45, rimD: 0.9, z: -7.6, ribPitch: 0.16, meshGap: 0.15,
+      shellTop: [0.36, 0.22], shellOff: 0.4, slot: { w: 0.25, h: 1.1, pitch: 1, rowH: 1.5 }, spineW: [3.2, 5.5], spineT: 0.9 }, // shellTop = fraction of back.h at centre / sides
+    head: { w: 13, h: 7.5, r: 2.6, wrap: 1.3, tiltDeg: 12, dz: 0.3, gap: 0.9, rimW: 0.38, rimD: 0.75, neckW: 1.1, neckT: 0.6, clamp: [1.6, 1.2, 0.8], pivotDia: 0.9, pivotLen: 1.5 },
+    arm: { topElev: 25.5, x: 11, len: 12.5, tube: 0.28, bandW: 2.0, padW: 2.4, padT: 0.25, tipR: 1.5, tipZ: 0.45, rootZ: 0.4 }, // tipZ/rootZ = fractions of len ahead of / behind the seat centre
+    base: { r: 11, armW: 1.25, rootT: 1.7, tipT: 0.85, bevel: 0.5, socketR: 0.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 },
+    lift: { r: 1.05, pistonR: 0.55, top: 11, shroudR: 1.3, shroudTop: 9 }, mech: { w: 7, d: 9, h: 1.6, knobR: 0.9, knobH: 1.1 } },
   futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 6, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
     bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 1.5, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.45, dimple: 0.4, seamW: 0.75, edgeR: 0.7, pipeR: 0.23,
     stitch: { w: 0.1, pitch: 0.15, color: 0x6a6e76 }, // top-stitch thread along the tuft seams
@@ -328,7 +332,7 @@ export const FURNITURE = {
     pillow: { w: 26, d: 19.5, h: 7, waist: 0.05, tiltDeg: 11, gap: 0.4, sink: 0.4 } },
   // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
   wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, pos: [135.7, 238], rot: -90 }, // 47" user-given
-  wifeChair: { module: 'chair', w: 25, d: 25, h: 47, seatH: 18.5, pos: [108, 238], rot: 90 },
+  wifeChair: { module: 'chair', w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [108, 238], rot: 90 },
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
   wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, frameW: 1.55, panelR: 1.0, handle: { w: 1.05, h: 3.6, proj: 0.45, bar: 0.22 }, ribPitch: 1.3, ribW: 0.5, ribT: 0.14, rodDia: 0.75, rodDrop: 2.6, openDeg: 105, pos: [16.1, 279.5], rot: 90 },
 };
