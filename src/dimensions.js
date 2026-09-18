@@ -206,11 +206,11 @@ export const KITCHEN = {
 // ---------------------------------------------------------------- bath / vanity / laundry
 export const BATH = {
   // one-piece fiberglass tub/shower (IMG_3942/3944): valve end at the N wall, apron faces +y
-  tub: { l: 60, w: 30, h: 17, surroundH: 74, wallT: 2, cornerR: 4, edgeR: 0.8, topBevel: 0.5,
-    rimFront: 4, rimBack: 2.5, rimEnd: 3, basinR: 5, basinSlope: 3.5, floorElev: 1.5, apronRecess: 0.5, apronBand: 4.5, apronBase: 1.75,
-    niche: { w: 6.5, bottom: 26, top: 40, depth: 1.5, fromValveWall: 30, barElev: 31.5 } }, // IMG_3944: centred on the back wall
+  tub: { l: 60, w: 30, h: 17, surroundH: 74, wallT: 2.5, cornerR: 4, edgeR: 0.8, topBevel: 0.5,
+    rimFront: 4, rimBack: 2.5, rimEnd: 3, basinR: 6, basinSlope: 3.5, floorElev: 1.5, apronRecess: 0.5, apronBand: 4.5, apronBase: 1.75,
+    niche: { w: 8, bottom: 26, top: 40, depth: 2, fromValveWall: 30, barElev: 31.5 } }, // IMG_3944: centred on the back wall
   showerRod: { elev: 76, bow: 6, dia: 1, setback: 1, flange: 2.6 },
-  showerHead: { elev: 75, armElev: 72, dia: 6, reach: 12, armDia: 0.7 }, // IMG_3943: flange just under the surround top
+  showerHead: { elev: 74, armElev: 72, dia: 6, reach: 8.5, armDia: 0.7 }, // IMG_3943: flange just under the surround top
   valve: { elev: 28, dia: 7 }, spout: { elev: 21, l: 5.5, dia: 1.7 }, overflow: { elev: 12.5, dia: 2.8 }, drain: { dia: 2.8, fromValveWall: 11 },
   toilet: { cy: 51, w: 17, l: 28.5, seatH: 16.5, tankH: 29, tankD: 8.25, tankGap: 0.75, tankBottom: 14.5, lidT: 1.4, rimH: 15, bowlW: 14, bowlL: 20.5,
     stop: { elev: 6, dy: 10 } },

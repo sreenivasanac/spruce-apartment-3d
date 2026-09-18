@@ -44,3 +44,6 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - K4. Dishwasher has a pocket handle in the black control strip (no bar handle visible in IMG_3933). Range knobs on the backguard per IMG_3946.
 - K5. Splash-wall outlets: 4 on the S wall at 44" (y = 42, 50, 93, 120); none modelled on the E wall (none visible).
 - K6. Blind corners are closed with 3/4" fillers; cabinet interiors are not modelled (doors closed), except the open-top sink base that holds the undermount bowl.
+- B1. Bathroom: tub/shower fittings centred on the 30" tub width; valve 28", spout 21", shower-arm flange 72" (just under the 74" surround top), towel bar 58" — scaled from IMG_3942/3943 against the 74" surround. Surround shell 2.5" thick, soap niche 8×14" centred on the back wall.
+- B2. Bathroom: the "door stop" in IMG_3950 is really a single-post toilet-paper holder on the bath S wall (modelled as such); the door stop itself is not visible in any photo, so a rubber wall bumper at lever height behind the open bath door is assumed.
+- B3. Vanity: BATH.vanity.h = cabinet height (top of quartz 35.75"); mirror 32×38" sitting on the 4" backsplash (IMG_3941 proportions); splashes on both side walls; towel ring on the linen-side pier wall at 48".
