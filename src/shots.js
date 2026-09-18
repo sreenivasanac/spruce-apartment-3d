@@ -38,6 +38,8 @@ export const SHOTS = {
   liftTop: { pos: [262, 205, 46], target: [205, 222, 10], vfov: 38 },
   mandir: { pos: [188, 105, 56], target: [188, 8, 38], vfov: 42 },
   bed: { pos: [130, 292, 66], target: [45, 232, 14], vfov: 55 },
+  wifeDesk: { pos: [70, 290, 58], target: [132, 238, 24], vfov: 50 },
+  wardrobe: { pos: [110, 240, 56], target: [16, 279, 34], vfov: 50 },
   // ---- overviews ----
   living: { pos: [160, 150, 64], target: [290, 290, 30], vfov: 75 },
   bedroom: { pos: [140, 165, 64], target: [30, 290, 25], vfov: 75 },

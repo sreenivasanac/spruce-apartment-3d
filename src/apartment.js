@@ -20,12 +20,13 @@ export async function buildApartment(ctx) {
   const furniture = group('furniture');
   root.add(furniture);
   for (const key of Object.keys(FURNITURE)) {
-    const g = await load(FURN_MODS, `./furniture/${key}.js`, ctx);
+    const g = await load(FURN_MODS, `./furniture/${FURNITURE[key].module ?? key}.js`, ctx); // `module` lets two pieces share a model
     if (!g) continue;
     const D = FURNITURE[key];
-    place(g, D.pos[0], D.pos[1], key === 'bed' ? 0.5 : 0, D.rot); // bed sits on carpet
+    place(g, D.pos[0], D.pos[1], D.pos[0] < 148 && D.pos[1] > 156.5 ? 0.5 : 0, D.rot); // bedroom pieces sit on the carpet
     g.userData.draggable = true;
     g.userData.key = key;
+    g.name = key;
     furniture.add(g);
   }
   for (const name of ROOM_ORDER) {

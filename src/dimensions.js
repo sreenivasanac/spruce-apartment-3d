@@ -161,12 +161,17 @@ export const FIXTURES = {
 
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
 export const FURNITURE = {
-  desk: { w: 63, d: 24, h: 29, topT: 1, leg: 1.5, pos: [298, 232], rot: 90 }, // user-measured
+  desk: { w: 63, d: 24, h: 29, topT: 1, leg: 1.5, pos: [298, 232], rot: -90 }, // user-measured
   chair: { w: 25, d: 25, h: 47, seatH: 18.5, pos: [270, 232], rot: 90 },
-  futon: { w: 66, d: 33, h: 30, seatH: 15, armW: 8, legH: 5, pos: [169.5, 222], rot: -90 }, // ASSUMED typical click-clack futon
-  liftTop: { w: 41, d: 19.5, h: 16.5, legH: 5.5, liftRise: 7.5, liftFwd: 6, marbleW: 15, pos: [205, 222], rot: -90 }, // ASSUMED
+  futon: { w: 66, d: 33, h: 30, seatH: 15, armW: 8, legH: 5, pos: [169.5, 222], rot: 90 }, // ASSUMED typical click-clack futon
+  liftTop: { w: 41, d: 19.5, h: 16.5, legH: 5.5, liftRise: 7.5, liftFwd: 6, marbleW: 15, pos: [205, 222], rot: 90 }, // ASSUMED
   mandir: { w: 29.5, d: 13, h: 71, baseH: 28, pos: [188, 12.8], rot: 0 }, // bookcase, ASSUMED Sauder-style 5-shelf w/ doors
-  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 232], rot: 90 },
+  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 225], rot: 90 },
+  // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
+  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5 }, legDia: 1.6, pos: [135.7, 238], rot: -90 }, // 47" user-given
+  wifeChair: { module: 'chair', w: 25, d: 25, h: 47, seatH: 18.5, pos: [108, 238], rot: 90 },
+  // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
+  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], pos: [16.1, 279.5], rot: 90 },
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.

@@ -24,3 +24,6 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - F4. Bed frame 55.5 × 77, deck 14", headboard top 42"; mattress 54×75×12 (US full, verified standard).
 - F5. Chair 25×25 footprint, seat 18.5", top of headrest 47".
 - F6. Layout: futon on the bedroom-side living wall facing S with the lift-top in front; desk + chair on the S accent wall near the slider; mandir on the E (entry) wall between the entry door and the kitchen stub so the devotee faces east; bed headboard on the N wall.
+- F7. Wardrobe: user wrote 19.7"W × 40.2"D; photos show a 3-door front, so 40.2" is modelled as the front width and 19.7" as depth. Tier heights 29.5/23.5/14 estimated from photo proportions.
+- F8. Wife's desk 47.25 × 23.625 × 29 (IKEA LAGKAPTEN/ALEX/ADILS standard sizes; user gave 47" width). Her chair reuses the same white mesh chair model (no separate photo).
+- F9. Bedroom layout: bed head on N wall, wardrobe on N wall between bed and window wall, wife's desk + chair on the bedroom/living wall.
