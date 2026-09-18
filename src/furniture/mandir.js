@@ -19,12 +19,12 @@ const put = (o, x, y, z) => (o.position.set(m(x), m(y), m(z)), o);
 const shadow = (o) => ((o.castShadow = o.receiveShadow = true), o);
 
 /** Rounded-edge board. UVs are re-projected in metres with U along `grain` ('x'|'y'|'z') so MAT.cherryGrain runs lengthwise. */
-function wood(w, h, d, grain, name, radius = D.edge, mat = MAT.cherryGrain) {
+function wood(w, h, d, grain, name, radius = D.edge, mat = MAT.cherryGrain, uv0) { // uv0 = [x, y, z, offset] (inches): board centre inside a larger one-piece part -> continuous figure
   const g = new RoundedBoxGeometry(m(w), m(h), m(d), 2, m(Math.min(radius, w / 2, h / 2, d / 2)));
   const p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
-  const gi = 'xyz'.indexOf(grain), off = rand(); // random V offset so no two boards show the same figure
+  const gi = 'xyz'.indexOf(grain), off = uv0 ? uv0[3] : rand(); // random V offset so no two boards show the same figure
   for (let i = 0; i < p.count; i++) {
-    const P = [p.getX(i), p.getY(i), p.getZ(i)], N = [n.getX(i), n.getY(i), n.getZ(i)].map(Math.abs);
+    const P = [p.getX(i), p.getY(i), p.getZ(i)].map((v, a) => v + (uv0 ? m(uv0[a]) : 0)), N = [n.getX(i), n.getY(i), n.getZ(i)].map(Math.abs);
     const ni = N.indexOf(Math.max(...N));
     const vi = [0, 1, 2].find((a) => a !== gi && a !== ni) ?? (gi + 1) % 3;
     uv.setXY(i, P[ni === gi ? (gi + 2) % 3 : gi] + off, P[vi] + off);
@@ -87,48 +87,61 @@ function carcass() {
   // raised-panel overlay doors
   const dh = D.baseH - D.deckT - D.plinthH - 2 * DR.gap, dw = (bw - 3 * DR.gap) / 2, fw = DR.frameW;
   const dy = D.plinthH + DR.gap + dh / 2;
+  // plain dark mullion right behind the door gap so nothing textured shows through the 1/8" slot
+  g.add(put(wood(DR.mullionW, dh, D.backT, 'y', 'mandir:mullion', 0.02, MAT.cherry), 0, dy, zFront - D.backT / 2));
   for (const s of [-1, 1]) {
     const side = s < 0 ? 'L' : 'R';
-    const door = group(`mandir:door${side}`);
+    const door = group(`mandir:door${side}`), off = rand();
+    // thermofoil door = one routed piece: every part shares one vertical-grain UV frame, joints are only fine eased grooves
+    const part = (w, h, t, x, y, z, n, r) => door.add(put(wood(w, h, t, 'y', `mandir:door${side}:${n}`, r, MAT.cherryGrain, [x, y, 0, off]), x, y, z));
     for (const k of [-1, 1]) {
-      door.add(put(wood(fw, dh, DR.t, 'y', `mandir:door${side}:stile`), k * (dw - fw) / 2, 0, DR.t / 2));
-      door.add(put(wood(dw - 2 * fw, fw, DR.t, 'x', `mandir:door${side}:rail`), 0, k * (dh - fw) / 2, DR.t / 2));
+      part(fw, dh, DR.t, k * (dw - fw) / 2, 0, DR.t / 2, 'stile');
+      part(dw - 2 * fw, fw, DR.t, 0, k * (dh - fw) / 2, DR.t / 2, 'rail');
     }
     const fieldT = DR.t - DR.panelRaise;
-    door.add(put(wood(dw - 2 * fw + 0.1, dh - 2 * fw + 0.1, fieldT, 'y', `mandir:door${side}:field`, 0.02), 0, 0, fieldT / 2));
-    door.add(put(wood(dw - 2 * fw - 1.5, dh - 2 * fw - 1.5, DR.panelRaise * 2, 'y', `mandir:door${side}:panel`, DR.panelRaise * 0.9), 0, 0, fieldT));
+    part(dw - 2 * fw + 0.1, dh - 2 * fw + 0.1, fieldT, 0, 0, fieldT / 2, 'field', 0.02);
+    part(dw - 2 * fw - 1.5, dh - 2 * fw - 1.5, DR.panelRaise * 2, 0, 0, fieldT, 'panel', DR.panelRaise * 0.9);
     door.add(put(pull(`mandir:pull${side}`), -s * (dw / 2 - DR.pullOff), (DR.pullElevFrac - 0.5) * dh, DR.t));
-    for (const k of [-1, 1]) { // hinge barrels on the outer edge
-      const hinge = shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(0.13), m(0.13), m(1.6), 10), MAT.blackMetal));
-      door.add(put(hinge, s * (dw / 2 + 0.02), k * dh * 0.36, DR.t * 0.4));
+    for (const k of [-1, 1]) { // dark wrap hinges on the outer edge: knuckle + leaf wrapping the door edge
+      const hy = k * dh * (0.5 - DR.hingeFrac), r = DR.hingeDia / 2;
+      const knuckle = shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(r), m(r), m(DR.hingeL), 12), MAT.blackMetal));
+      knuckle.name = `mandir:door${side}:hinge${k < 0 ? 'Lo' : 'Hi'}`;
+      const leaf = shadow(new THREE.Mesh(new THREE.BoxGeometry(m(0.05), m(DR.hingeL), m(0.8)), MAT.blackMetal)); // leaf screwed to the carcass side
+      door.add(put(knuckle, s * (dw / 2 + DR.gap + r * 0.2), hy, DR.t * 0.45), put(leaf, s * (dw / 2 + DR.gap + 0.025), hy, -0.4));
     }
     g.add(put(door, s * (dw + DR.gap) / 2, dy, zFront));
   }
   return { g, shelfTops, bayH, innerW, zIn, zFront, shelfFront: zIn + shelfD };
 }
 
-/** Antique-brass drop pull: oval backplate, two rosettes and a bail. Origin on the door face, +Z out. */
+/** Antique-brass drop pull: waisted, pointed-end pierced backplate (extruded Shape), post + hanging teardrop bail. Origin on the door face, +Z out. */
 function pull(name) {
-  const H = DR.pullH, g = group(name);
-  const plate = shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(0.45), m(0.45), m(0.08), 24), MAT.antiqueBrass));
-  plate.rotation.x = Math.PI / 2; plate.scale.z = H / 0.9; // cylinder axis -> Z, then stretch along door-vertical (its local z)
-  g.add(put(plate, 0, 0, 0.04));
-  for (const k of [-1, 1]) {
-    const ros = shadow(new THREE.Mesh(new THREE.SphereGeometry(m(0.3), 16, 10), MAT.antiqueBrass));
-    ros.scale.z = 0.6;
-    g.add(put(ros, 0, k * H * 0.36, 0.1));
-  }
-  const P = (y, z) => new THREE.Vector3(0, m(y * H), m(z * DR.pullProj));
-  const bail = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([P(0.36, 0.2), P(0.33, 0.9), P(0.15, 1), P(-0.15, 1), P(-0.33, 0.9), P(-0.36, 0.2)]), 24, m(0.1), 8);
-  g.add(shadow(new THREE.Mesh(bail, MAT.antiqueBrass)));
+  const H = DR.pullH, W = DR.pullW / 2, g = group(name), N = 40;
+  const hw = (t) => W * (0.42 + 0.58 * Math.abs(Math.sin(Math.PI * t)) ** 0.8) * Math.min(1, (1 - Math.abs(t)) * 6); // two lobes, waist, pointed ends
+  const pts = [];
+  for (let i = 0; i <= N; i++) { const t = -1 + (2 * i) / N; pts.push(new THREE.Vector2(m(hw(t)), m(t * H / 2))); }
+  for (let i = N - 1; i > 0; i--) { const t = -1 + (2 * i) / N; pts.push(new THREE.Vector2(-m(hw(t)), m(t * H / 2))); }
+  const shape = new THREE.Shape(pts);
+  for (const k of [-1, 1]) { const hole = new THREE.Path(); hole.absarc(0, m(k * H * 0.38), m(0.07), 0, Math.PI * 2, true); shape.holes.push(hole); } // piercings
+  const plate = shadow(new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: m(0.04), bevelEnabled: true, bevelSize: m(0.03), bevelThickness: m(0.03), bevelSegments: 2, curveSegments: 10 }), MAT.antiqueBrass));
+  g.add(put(plate, 0, 0, 0.03));
+  const postY = H * 0.25, R = H * 0.13; // post in the upper lobe, bail hangs from it and rests on a stud in the lower lobe
+  const post = shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(0.1), m(0.16), m(DR.pullProj), 12), MAT.antiqueBrass));
+  post.rotation.x = Math.PI / 2;
+  const knob = shadow(new THREE.Mesh(new THREE.SphereGeometry(m(0.19), 14, 10), MAT.antiqueBrass));
+  const stud = shadow(new THREE.Mesh(new THREE.SphereGeometry(m(0.16), 12, 8), MAT.antiqueBrass));
+  const bail = shadow(new THREE.Mesh(new THREE.TorusGeometry(m(R), m(0.075), 8, 28).scale(1, 1.9, 1), MAT.antiqueBrass));
+  bail.rotation.x = THREE.MathUtils.degToRad(7); // hangs a touch proud at the bottom where it rests on the stud
+  g.add(put(post, 0, postY, DR.pullProj / 2), put(knob, 0, postY, DR.pullProj), put(stud, 0, -H * 0.25, 0.12), put(bail, 0, postY - R * 1.9 + 0.08, DR.pullProj * 0.62));
   return g;
 }
 
 // ---------- puja articles ----------
-const clothMat = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.8, side: THREE.DoubleSide, name: 'mandir-silk-runner' });
-
-/** Saffron silk runner with zari (gold) borders; lies on the shelf and drapes over its front edge. */
-function runner(w, depth, name) {
+let weaveTex;
+/** Saffron silk runner with zari (gold) borders: ONE thin sheet swept over the shelf — flat on top, rounded fold over the
+ *  nosing, lying against the nosing face, then hanging free with a slight inward curl and a wavy hem.
+ *  Origin: top of the shelf's front edge (nosing face), centred. `nosing` = height of the face it lies against. */
+function runner(w, depth, nosing, name) {
   const zari = (c, x, y, bw, bh, horiz) => { // gold band with maroon pin-lines and diamonds
     c.fillStyle = '#c9971f'; c.fillRect(x, y, bw, bh);
     c.fillStyle = '#6e1408';
@@ -139,33 +152,40 @@ function runner(w, depth, name) {
       c.beginPath(); c.moveTo(cx, cy - r); c.lineTo(cx + r, cy); c.lineTo(cx, cy + r); c.lineTo(cx - r, cy); c.fill();
     }
   };
-  const weave = (c, W, H) => { // fine silk weave so the cloth is not a flat colour
-    const r = rng(9);
-    for (let i = 0; i < 2500; i++) { c.fillStyle = `rgba(${r() < 0.5 ? '255,190,90' : '120,30,0'},${0.04 + r() * 0.05})`; c.fillRect(r() * W, r() * H, 8 + r() * 30, 1); }
-  };
+  const R = DC.runnerFoldR, arc = (Math.PI / 2) * R, flat = depth - R, L = flat + arc + DC.runnerDrop - R; // developed length back -> hem
   const ppi = 40, band = 1.1 * ppi;
-  const top = canvasTex(Math.round(w * ppi), Math.round(depth * ppi), (c, W, H) => {
-    c.fillStyle = '#d9611a'; c.fillRect(0, 0, W, H); weave(c, W, H);
-    zari(c, 0, 0, band, H, false); zari(c, W - band, 0, band, H, false);
-  });
-  const drop = canvasTex(Math.round(w * ppi), Math.round(DC.runnerDrop * ppi), (c, W, H) => {
-    c.fillStyle = '#d9611a'; c.fillRect(0, 0, W, H); weave(c, W, H);
+  const map = canvasTex(Math.round(w * ppi), Math.round(L * ppi), (c, W, H) => { // canvas top = back of shelf, bottom = hem
+    c.fillStyle = '#cf5a17'; c.fillRect(0, 0, W, H);
+    const r = rng(9); // slubby silk threads so the cloth is not a flat colour
+    for (let i = 0; i < 5000; i++) { c.fillStyle = `rgba(${r() < 0.5 ? '255,180,80' : '110,28,0'},${0.04 + r() * 0.07})`; c.fillRect(r() * W, r() * H, 8 + r() * 40, 1); }
     zari(c, 0, 0, band, H, false); zari(c, W - band, 0, band, H, false); zari(c, 0, H - band, W, band, true);
   });
-  const g = group(name);
-  const a = new THREE.Mesh(new THREE.PlaneGeometry(m(w), m(depth)), clothMat(top));
-  a.rotation.x = -Math.PI / 2; a.receiveShadow = true; a.name = `${name}:top`;
-  g.add(put(a, 0, 0, -depth / 2));
-  const dg = new THREE.PlaneGeometry(m(w), m(DC.runnerDrop), 48, 4), p = dg.attributes.position;
-  for (let i = 0; i < p.count; i++) { // soft folds growing toward the free hem
-    const t = 0.5 - p.getY(i) / m(DC.runnerDrop);
-    p.setZ(i, m(0.05 + t * 0.14 * (1 + Math.sin(p.getX(i) / m(w) * 38))));
+  weaveTex ??= (() => { // fine plain-weave bump, 1 tile = 8 threads
+    const t = canvasTex(32, 32, (c) => { for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { c.fillStyle = (x + y) % 2 ? '#a0a0a0' : '#606060'; c.fillRect(x * 4, y * 4, 4, 4); } });
+    t.colorSpace = THREE.NoColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+  })();
+  const bump = weaveTex.clone(); bump.repeat.set(w * 6, L * 6); bump.needsUpdate = true; // ~48 threads per inch
+  const mat = new THREE.MeshPhysicalMaterial({ map, bumpMap: bump, bumpScale: 0.6, roughness: 0.62, sheen: 1, sheenRoughness: 0.35, sheenColor: 0xffb24d, side: THREE.DoubleSide, name: 'mandir-silk-runner' });
+
+  const nu = 64, nv = 40, geo = new THREE.PlaneGeometry(1, 1, nu, nv), pos = geo.attributes.position, uv = geo.attributes.uv;
+  const lift = 0.03; // sheet rides just above the wood (thin cloth, no slab thickness)
+  for (let i = 0; i < pos.count; i++) {
+    const u = uv.getX(i), sLen = (1 - uv.getY(i)) * L, x = (u - 0.5) * w; // sLen = distance from the back edge along the cloth
+    let y, z;
+    if (sLen <= flat) { y = lift; z = -depth + sLen; } // on the shelf
+    else if (sLen <= flat + arc) { const a = (sLen - flat) / R; y = lift - R + R * Math.cos(a); z = -R + (R + lift) * Math.sin(a); } // quarter-round fold
+    else {
+      const dn = sLen - flat - arc, free = Math.max(0, R + dn - nosing) / Math.max(0.01, DC.runnerDrop - nosing); // 0 on the nosing face -> 1 at the hem
+      y = -R - dn;
+      z = lift + free * free * (-DC.runnerCurl + 0.16 * (1 + Math.sin(u * 31 + 0.7) * 0.7 + Math.sin(u * 13) * 0.3)); // inward curl + soft flutes growing to the hem
+      y += free * 0.06 * Math.sin(u * 17 + 1); // hem not ruler-straight
+    }
+    pos.setXYZ(i, m(x), m(y), m(z));
   }
-  dg.computeVertexNormals();
-  const b = shadow(new THREE.Mesh(dg, clothMat(drop)));
-  b.name = `${name}:drop`;
-  g.add(put(b, 0, -DC.runnerDrop / 2, 0));
-  return g; // origin: top of the shelf's front edge, centred
+  geo.computeVertexNormals();
+  const mesh = shadow(new THREE.Mesh(geo, mat));
+  mesh.name = `${name}:cloth`;
+  return group(name, mesh);
 }
 
 /** Dignified devotional art: aureole + soft painted silhouette (no faces) or a gold Om. */
@@ -216,54 +236,75 @@ function picture(kind, W, H) {
   });
 }
 
-/** Gold-framed picture. Origin = bottom-centre of the frame's BACK face, leaning back by frameLean about that edge. */
+/** Gold-framed picture under glass. Origin = bottom-centre of the frame's BACK face, leaning back by frameLean about that edge
+ *  (it rests against the back panel, so no easel). Frame = one extruded moulding ring with a bevelled profile (flush corners). */
 function framed(kind, [pw, ph], name) {
-  const b = DC.frameBar, t = DC.frameT, g = group(name), inner = group(`${name}:lean`);
-  const bar = (w, h, x, y, n) => inner.add(put(wood(w, h, t, 'x', `${name}:${n}`, 0.18, MAT.brass), x, y, t / 2));
-  bar(pw + 2 * b, b, 0, b / 2, 'bottom'); bar(pw + 2 * b, b, 0, ph + 1.5 * b, 'top');
-  bar(b, ph, -(pw + b) / 2, b + ph / 2, 'left'); bar(b, ph, (pw + b) / 2, b + ph / 2, 'right');
-  const art = new THREE.Mesh(new THREE.PlaneGeometry(m(pw), m(ph)), new THREE.MeshStandardMaterial({ map: picture(kind, pw, ph), roughness: 0.6, envMapIntensity: 0.35, name: `mandir-art-${kind}` }));
+  const b = DC.frameBar, t = DC.frameT, bev = 0.14, g = group(name), inner = group(`${name}:lean`);
+  const ow = pw + 2 * b, oh = ph + 2 * b;
+  const rect = (C, w, h, cw) => { C.moveTo(-m(w) / 2, -m(h) / 2); const P = [[1, -1], [1, 1], [-1, 1]]; (cw ? P.reverse() : P).forEach(([x, y]) => C.lineTo(x * m(w) / 2, y * m(h) / 2)); C.closePath(); return C; };
+  const ring = rect(new THREE.Shape(), ow - 2 * bev, oh - 2 * bev, false);
+  ring.holes.push(rect(new THREE.Path(), pw + 2 * bev - 0.1, ph + 2 * bev - 0.1, true));
+  const frame = shadow(new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: m(t - 2 * bev), bevelEnabled: true, bevelSize: m(bev), bevelThickness: m(bev), bevelSegments: 3 }), MAT.brass)); // clean gilt moulding (patina map is for UV-mapped lathed brass)
+  frame.name = `${name}:frame`;
+  inner.add(put(frame, 0, oh / 2, bev));
+  // lit print (no emissive), toned down so it never outshines its surroundings in shade
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(m(pw), m(ph)), new THREE.MeshStandardMaterial({ map: picture(kind, pw, ph), color: 0xd2cbc4, roughness: 0.75, envMapIntensity: 0.3, name: `mandir-art-${kind}` }));
   art.name = `${name}:art`; art.receiveShadow = true;
-  inner.add(put(art, 0, b + ph / 2, t * 0.5));
-  const backing = shadow(new THREE.Mesh(new THREE.BoxGeometry(m(pw + b), m(ph + b), m(0.1)), MAT.blackPlastic));
-  inner.add(put(backing, 0, b + ph / 2, 0.06));
+  inner.add(put(art, 0, oh / 2, t * 0.45));
+  frameGlass ??= Object.assign(MAT.glassPane.clone(), { envMapIntensity: 0.5, opacity: 0.04, side: THREE.FrontSide, name: 'mandir-frame-glass' }); // window glass is tuned for a bright exterior; a frame in shade must not veil the print
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(m(pw), m(ph)), frameGlass);
+  glass.name = `${name}:glass`;
+  inner.add(put(glass, 0, oh / 2, t * 0.6));
+  const backing = shadow(new THREE.Mesh(new THREE.BoxGeometry(m(ow - 0.3), m(oh - 0.3), m(0.1)), MAT.blackPlastic));
+  inner.add(put(backing, 0, oh / 2, 0.06));
   inner.rotation.x = -THREE.MathUtils.degToRad(DC.frameLean);
   g.add(inner);
-  g.userData.lean = (ph + 2 * b) * Math.sin(THREE.MathUtils.degToRad(DC.frameLean)); // how far the foot stands off the back panel
+  g.userData.lean = oh * Math.sin(THREE.MathUtils.degToRad(DC.frameLean)); // how far the foot stands off the back panel
   return g;
 }
 
 const PEDESTAL = [[0, 0], [0.3, 0], [0.3, 0.04], [0.25, 0.065], [0.33, 0.1], [0.27, 0.14], [0, 0.14]];
-/** Small brass murti kept abstract and faceless: seated figure (merged ellipsoids) on a lotus pedestal, prabhavali arch behind. */
+// seated-figure silhouette above the pedestal (spline control points): folded knees, waist, shoulders, neck, head, tapering mukut
+const FIGURE = [[0.26, 0.14], [0.295, 0.19], [0.26, 0.25], [0.14, 0.31], [0.115, 0.38], [0.175, 0.46], [0.2, 0.51], [0.16, 0.56], [0.055, 0.595], [0.07, 0.63], [0.1, 0.68], [0.085, 0.74], [0.055, 0.775], [0.075, 0.805], [0.045, 0.87], [0.02, 0.94], [0, 1]];
+/** Small brass murti kept abstract and faceless: ONE continuous lathe silhouette (slightly flattened front-to-back) on a lotus
+ *  pedestal, with a prabhavali arch behind. */
 function murti(H, name) {
-  const part = (geo, sx, sy, sz, x, y, z) => geo.scale(m(H * sx), m(H * sy), m(H * sz)).translate(m(H * x), m(H * y), m(H * z));
-  const sph = () => new THREE.SphereGeometry(1, 20, 14);
+  const v = (pts) => pts.map(([r, y]) => new THREE.Vector2(m(r * H), m(y * H)));
   const parts = [
-    new THREE.LatheGeometry(PEDESTAL.map(([r, y]) => new THREE.Vector2(m(r * H), m(y * H))), 32),
-    part(sph(), 0.27, 0.085, 0.17, 0, 0.2, 0.02), // crossed legs
-    part(sph(), 0.13, 0.2, 0.1, 0, 0.4, 0), // torso
-    part(sph(), 0.19, 0.06, 0.09, 0, 0.53, 0), // shoulders
-    part(sph(), 0.05, 0.14, 0.05, -0.17, 0.4, 0.03), part(sph(), 0.05, 0.14, 0.05, 0.17, 0.4, 0.03), // arms resting on the knees
-    part(sph(), 0.1, 0.105, 0.1, 0, 0.68, 0), // head (featureless)
-    part(new THREE.ConeGeometry(1, 1, 16), 0.075, 0.24, 0.075, 0, 0.86, 0), // mukut (crown)
-    part(new THREE.TorusGeometry(1, 0.07, 8, 32, Math.PI), 0.36, 0.36, 0.36, 0, 0.5, -0.12), // prabhavali
-    ...[-1, 1].map((s) => part(new THREE.CylinderGeometry(1, 1, 1, 8), 0.025, 0.38, 0.025, s * 0.36, 0.31, -0.12)),
+    new THREE.LatheGeometry(v(PEDESTAL), 32),
+    new THREE.LatheGeometry(new THREE.SplineCurve(v(FIGURE)).getPoints(64), 32).scale(1, 1, 0.72),
+    new THREE.TorusGeometry(m(H * 0.36), m(H * 0.025), 8, 32, Math.PI).translate(0, m(H * 0.5), m(-H * 0.14)), // prabhavali
+    ...[-1, 1].map((s) => new THREE.CylinderGeometry(m(H * 0.025), m(H * 0.025), m(H * 0.38), 8).translate(m(s * H * 0.36), m(H * 0.31), m(-H * 0.14))),
   ];
-  const mesh = shadow(new THREE.Mesh(mergeGeometries(parts.map((g) => g.toNonIndexed())), MAT.brass));
+  const mesh = shadow(new THREE.Mesh(mergeGeometries(parts.map((g) => g.toNonIndexed())), MAT.brassPatina));
   mesh.name = name;
   return mesh;
 }
 
 const FLAME = [[0, 0], [0.13, 0.1], [0.2, 0.28], [0.15, 0.55], [0.055, 0.82], [0, 1]];
-let glowTex;
-/** Lamp flame: unlit teardrop + soft additive halo. Flickers via userData.tick. */
+let glowTex, flameGeo, flameMat, frameGlass;
+/** Lamp flame: additive teardrop with a baked gradient (orange root, white-yellow core, orange tip) + soft additive halo.
+ *  Every flame shares the same geometry/materials so they all look identical. Flickers via userData.tick. */
 function flame(name) {
-  glowTex ??= canvasTex(64, 64, (c) => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,190,90,1)'); g.addColorStop(0.35, 'rgba(255,140,40,0.4)'); g.addColorStop(1, 'rgba(255,120,20,0)'); c.fillStyle = g; c.fillRect(0, 0, 64, 64); });
-  const core = lathe(FLAME, DC.flameH, MAT.flame, `${name}:core`, 12);
-  core.castShadow = core.receiveShadow = false;
-  // halo is a 1-vertex Points (not a Sprite): GTAOPass skips Points in its normal/depth pre-pass, a Sprite would render as a black quad
+  glowTex ??= canvasTex(128, 128, (c) => { const g = c.createRadialGradient(64, 64, 0, 64, 64, 64); [[0, 0.8], [0.12, 0.45], [0.3, 0.18], [0.55, 0.06], [0.8, 0.015], [1, 0]].forEach(([s, a]) => g.addColorStop(s, `rgba(255,${Math.round(170 - s * 70)},${Math.round(70 - s * 50)},${a})`)); c.fillStyle = g; c.fillRect(0, 0, 128, 128); });
+  if (!flameGeo) {
+    flameGeo = new THREE.LatheGeometry(new THREE.SplineCurve(FLAME.map(([r, y]) => new THREE.Vector2(m(r * DC.flameH), m(y * DC.flameH)))).getPoints(24), 16);
+    const p = flameGeo.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+    const stops = [[0, 0xff5a0a], [0.3, 0xfff0b8], [0.55, 0xffd060], [1, 0xff6a10]];
+    for (let i = 0; i < p.count; i++) {
+      const t = p.getY(i) / m(DC.flameH), k = Math.max(1, stops.findIndex(([s]) => s >= t));
+      c.setHex(stops[k - 1][1]).lerp(new THREE.Color(stops[k][1]), (t - stops[k - 1][0]) / (stops[k][0] - stops[k - 1][0]));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    flameGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    flameMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, name: 'mandir-flame' });
+  }
+  const core = new THREE.Mesh(flameGeo, flameMat); core.name = `${name}:core`;
+  // halo is a 1-vertex Points (not a Sprite): GTAOPass skips Points in its normal/depth pre-pass, a Sprite would render as a black quad.
+  // Point size is not fov-corrected by three, so it is oversized to read ~3" wide at the ~40° shot fovs.
   const halo = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3)),
-    new THREE.PointsMaterial({ map: glowTex, size: m(DC.flameH * 4), sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    new THREE.PointsMaterial({ map: glowTex, size: m(DC.flameH * 9), sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+  halo.name = `${name}:halo`;
   const wick = new THREE.Mesh(new THREE.CylinderGeometry(m(0.03), m(0.03), m(0.2), 6), MAT.blackPlastic);
   const g = group(name, core, put(halo, 0, DC.flameH * 0.45, 0), put(wick, 0, 0, 0));
   const phase = rand() * 10; let t = 0;
@@ -273,10 +314,10 @@ function flame(name) {
 
 const DIYA = [[0, 0], [0.55, 0], [0.62, 0.1], [1, 0.5], [0.93, 0.52], [0.6, 0.22], [0, 0.18]]; // fractions of the bowl RADIUS
 function diya(name) {
-  const R = DC.diyaR, g = group(name, lathe(DIYA, R, MAT.brass, `${name}:bowl`));
+  const R = DC.diyaR, g = group(name, lathe(DIYA, R, MAT.brassPatina, `${name}:bowl`));
   const fl = put(flame(`${name}:flame`), 0, R * 0.5, R * 0.8);
-  // very weak warm glow, no shadow (candle-scale against the scene's sun = 5)
-  const light = new THREE.PointLight(0xffa24a, 0.05, m(40), 2);
+  // weak warm pool on the cloth and murtis, no shadow (candle-scale against the scene's sun = 5)
+  const light = new THREE.PointLight(0xffa24a, 0.1, m(DC.flameLightIn), 2);
   light.name = `${name}:light`; light.castShadow = false;
   fl.userData.light = light; fl.userData.lightBase = light.intensity;
   g.add(fl, put(light, 0, R * 0.5 + DC.flameH, R * 0.8));
@@ -287,13 +328,13 @@ const VILAKKU = [[0, 0], [0.19, 0], [0.19, 0.028], [0.13, 0.05], [0.06, 0.1], [0
 /** Kuthu vilakku: South-Indian standing brass oil lamp with one lit wick at the front of the bowl. */
 function vilakku(name) {
   const H = DC.vilakkuH;
-  return group(name, lathe(VILAKKU, H, MAT.brass, `${name}:body`), put(flame(`${name}:flame`), 0, H * 0.7, H * 0.155));
+  return group(name, lathe(VILAKKU, H, MAT.brassPatina, `${name}:body`), put(flame(`${name}:flame`), 0, H * 0.7, H * 0.155));
 }
 
 const LOTUS_STEM = [[0, 0], [0.25, 0], [0.25, 0.035], [0.085, 0.1], [0.055, 0.42], [0.12, 0.5], [0, 0.52]];
 /** Lotus tealight holder: brass foot, two rings of satin petals (one InstancedMesh), white tealight in the cup. */
 function lotus(color, name) {
-  const H = DC.lotusH, g = group(name, lathe(LOTUS_STEM, H, MAT.brass, `${name}:stem`));
+  const H = DC.lotusH, g = group(name, lathe(LOTUS_STEM, H, MAT.brassPatina, `${name}:stem`));
   const pl = H * 0.27; // petal half-length
   const pg = new THREE.SphereGeometry(1, 10, 8).scale(m(pl * 0.5), m(pl), m(pl * 0.13)).translate(0, m(pl), 0);
   const rings = [[8, 42, 0.28], [6, 20, 0.2]]; // [count, tilt deg from vertical, start radius / H·… in inches below]
@@ -314,13 +355,28 @@ function lotus(color, name) {
 }
 
 const PLATE = [[0, 0], [0.75, 0], [1, 0.12], [0.98, 0.14], [0.75, 0.03], [0, 0.03]]; // fractions of plate RADIUS
+let marigoldGeo;
 function plate(name) {
-  const R = DC.plateR, g = group(name, lathe(PLATE, R, MAT.brass, `${name}:dish`, 48));
-  const mari = new THREE.MeshStandardMaterial({ color: 0xe8861a, roughness: 1, flatShading: true, name: 'marigold' });
+  const R = DC.plateR, g = group(name, lathe(PLATE, R, MAT.brassPatina, `${name}:dish`, 48));
+  if (!marigoldGeo) { // ruffled pom-pom: radial petal lobes + noise, orange -> yellow petal tips baked as vertex colour
+    marigoldGeo = new THREE.IcosahedronGeometry(1, 5);
+    const p = marigoldGeo.attributes.position, col = new Float32Array(p.count * 3), v = new THREE.Vector3(), c = new THREE.Color();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).normalize();
+      const az = Math.atan2(v.z, v.x), el = Math.asin(v.y), ruffle = Math.sin(az * 14 + el * 9) * Math.sin(el * 11 + az * 3);
+      const k = 1 + 0.13 * ruffle + 0.05 * Math.sin(az * 37 + el * 29);
+      p.setXYZ(i, v.x * k, v.y * k * 0.7, v.z * k);
+      c.setHex(0xd2600a).lerp(new THREE.Color(0xf5a81c), THREE.MathUtils.clamp(0.5 + ruffle * 1.6, 0, 1));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    marigoldGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    marigoldGeo.computeVertexNormals();
+  }
+  const mari = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, name: 'marigold' });
   [[-0.3, 0.15, 0], [0.32, -0.1, 0.6], [0.02, -0.42, 1.3]].forEach(([x, z, r], i) => {
-    const f = shadow(new THREE.Mesh(new THREE.IcosahedronGeometry(m(R * 0.19), 2), mari));
-    f.scale.y = 0.65; f.rotation.y = r; f.name = `${name}:marigold${i}`;
-    g.add(put(f, x * R, R * 0.03 + R * 0.19 * 0.62, z * R));
+    const f = shadow(new THREE.Mesh(marigoldGeo, mari)), fr = R * 0.2;
+    f.scale.setScalar(m(fr)); f.rotation.set(0.2 * (i - 1), r, 0.15); f.name = `${name}:marigold${i}`;
+    g.add(put(f, x * R, R * 0.03 + fr * 0.62, z * R));
   });
   return g;
 }
@@ -328,11 +384,15 @@ function plate(name) {
 const BELL = [[0.31, 0], [0.32, 0.03], [0.26, 0.14], [0.2, 0.32], [0.15, 0.44], [0.055, 0.49], [0.04, 0.8], [0.1, 0.86], [0.08, 0.94], [0, 1]];
 const INCENSE_DISH = [[0, 0], [0.09, 0], [0.13, 0.03], [0.12, 0.035], [0.08, 0.012], [0.02, 0.012], [0.02, 0.04], [0, 0.04]]; // fractions of stick length
 function incense(name) {
-  const L = DC.incenseL, g = group(name, lathe(INCENSE_DISH, L, MAT.brass, `${name}:dish`));
-  const stick = shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(0.045), m(0.03), m(L), 6), new THREE.MeshStandardMaterial({ color: 0x3b2a1d, roughness: 1, name: 'agarbatti' })));
-  const tilt = THREE.MathUtils.degToRad(24);
+  const L = DC.incenseL, g = group(name, lathe(INCENSE_DISH, L, MAT.brassPatina, `${name}:dish`));
+  const tilt = THREE.MathUtils.degToRad(24), stick = group(`${name}:stick`), ash = L * 0.09;
+  const seg = (r0, r1, len, y, mat) => stick.add(put(shadow(new THREE.Mesh(new THREE.CylinderGeometry(m(r0), m(r1), m(len), 8), mat)), 0, y, 0));
+  seg(0.03, 0.025, L * 0.3, L * 0.15, new THREE.MeshStandardMaterial({ color: 0xb08a5a, roughness: 1, name: 'agarbatti-bamboo' })); // bare bamboo core at the foot
+  seg(0.05, 0.045, L * 0.7 - ash, L * 0.3 + (L * 0.7 - ash) / 2, new THREE.MeshStandardMaterial({ color: 0x3b2a1d, roughness: 1, name: 'agarbatti' }));
+  seg(0.04, 0.048, ash, L - ash / 2, new THREE.MeshStandardMaterial({ color: 0xb9b6b0, roughness: 1, name: 'agarbatti-ash' })); // grey ash tip
+  seg(0.05, 0.05, 0.07, L - ash - 0.03, new THREE.MeshBasicMaterial({ color: 0xff5a1a, toneMapped: false, name: 'agarbatti-ember' })); // glowing ring under the ash
   stick.rotation.z = -tilt;
-  g.add(put(stick, Math.sin(tilt) * L / 2, Math.cos(tilt) * L / 2 + L * 0.02, 0));
+  g.add(put(stick, 0, L * 0.02, 0));
   return g;
 }
 
@@ -343,14 +403,14 @@ export function build() {
 
   // MAIN shelf: runner, two framed pictures, murtis, lit diya
   const rw = innerW - 2 * DC.runnerMargin;
-  decor.add(put(runner(rw, shelfFront - zIn - 0.3, 'mandir:runner'), 0, main + 0.06, shelfFront + 0.02));
+  decor.add(put(runner(rw, shelfFront - zIn - 0.3, D.nosingH, 'mandir:runner'), 0, main, shelfFront));
   [['seated', -1], ['standing', 1]].forEach(([kind, s]) => {
     const f = framed(kind, DC.pic, `mandir:picture${s < 0 ? 'L' : 'R'}`);
-    decor.add(put(f, s * half * 0.6, main + 0.07, zIn + f.userData.lean + 0.05));
+    decor.add(put(f, s * half * 0.6, main + 0.04, zIn + f.userData.lean + 0.05));
   });
-  decor.add(put(murti(DC.murtiH, 'mandir:murti'), 0, main + 0.07, zIn + 3.2));
-  for (const s of [-1, 1]) decor.add(put(murti(DC.smallMurtiH, `mandir:murtiSmall${s < 0 ? 'L' : 'R'}`), s * half * 0.3, main + 0.07, zIn + 5.6));
-  decor.add(put(diya('mandir:diya'), 0, main + 0.07, shelfFront - 1.7));
+  decor.add(put(murti(DC.murtiH, 'mandir:murti'), 0, main + 0.04, zIn + 3.2));
+  for (const s of [-1, 1]) decor.add(put(murti(DC.smallMurtiH, `mandir:murtiSmall${s < 0 ? 'L' : 'R'}`), s * half * 0.3, main + 0.04, zIn + 5.6));
+  decor.add(put(diya('mandir:diya'), 0, main + 0.04, shelfFront - 1.7));
 
   // UPPER shelf: Om picture flanked by lotus tealight holders
   const om = framed('om', DC.omPic, 'mandir:pictureOm');
@@ -360,7 +420,7 @@ export function build() {
   // DECK: pair of kuthu vilakku, puja plate with marigolds, bell, incense
   for (const s of [-1, 1]) decor.add(put(vilakku(`mandir:vilakku${s < 0 ? 'L' : 'R'}`), s * half * 0.66, deck, zIn + 4.2));
   decor.add(put(plate('mandir:plate'), 0, deck, zIn + 5.2));
-  decor.add(put(lathe(BELL, DC.bellH, MAT.brass, 'mandir:bell'), half * 0.36, deck, zFront - 2.6));
+  decor.add(put(lathe(BELL, DC.bellH, MAT.brassPatina, 'mandir:bell'), half * 0.36, deck, zFront - 2.6));
   decor.add(put(incense('mandir:incense'), -half * 0.4, deck, zFront - 2.4));
 
   return group('mandir', body, decor);
