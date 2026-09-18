@@ -41,7 +41,7 @@ Lens: UW = iPhone 0.5× ultra-wide (strong edge stretch), W = 1×. Camera poses 
 |---|---|
 | table.jpg, table2.jpg | Desk 63×24×29 (user-measured; AR ruler shows 5'3"). Top = 3 panels: rustic-brown woodgrain ends (~16" each) + matte black centre; black steel frame, legs are flat inverted-U side frames w/ floor stretcher + one rear cross-bar |
 | office_chair1/2.jpg | White-frame ergonomic mesh chair: gray mesh back + adjustable mesh headrest, gray fabric seat, fixed white loop arms, white 5-star base, black casters |
-| futon2/3.jpg | Charcoal linen click-clack futon, tufted 4×2 grid per side, fold-down centre console w/ 2 cup holders, 2 loose rectangular arm bolsters, chrome conical legs; futon3 = laid flat |
+| futon2/3.jpg | Charcoal linen click-clack futon, top-stitched tufting: 6×2 panels on the seat, 3×3 per back side, 2×2 on the console face, fold-down centre console w/ 2 cup holders, 2 loose rectangular arm bolsters, chrome conical legs; futon3 = laid flat |
 | lift_top1/2/3.jpg | Walnut lift-top coffee table: ~⅔ lift-top (walnut) over hidden well + ~⅓ fixed faux-marble top over open cubby; black tapered round legs; black scissor lift arms, top rises and moves toward the sitter |
 | bookcase.jpg | Cherry-finish bookcase: crown cornice, 3 open bays (2 adjustable shelves) over 2 raised-panel doors w/ antique-brass pulls, plinth base |
 | home_mandir_earlier.jpeg | How the previous mandir was dressed: orange/gold cloth on the main shelf, brass diya + kuthu vilakku lamps, small framed deity picture, lotus tea-light holders, incense, brass plate; oil/matches kept low |

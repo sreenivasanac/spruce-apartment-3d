@@ -21,7 +21,7 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - A10. Exterior scenery (pool, redwoods, pool house, lawn) is a stylised backdrop, not surveyed.
 
 ## Furniture (estimated)
-- F1. Futon 66W × 33D × 30H, seat 15" — typical click-clack futon w/ cup-holder console.
+- F1. Futon 66W × 33D × 31H, seat 15" — typical click-clack futon w/ cup-holder console (superseded/refined by F-futon).
 - F2. Lift-top table 41W × 19.5D (user-given) × 14.5H ASSUMED: lift_top1/2.jpg scale to ~8.5" top+carcass over ~6" legs (upper:leg ≈ 1.45:1); marble end 16.5" (~40% of the front edge in lift_top2.jpg); tops overhang the carcass 0.5" all round; top rises ~7.5" and ~6" toward the sitter.
 - F3. Bookcase/mandir 29.5W × 13D × 71H (Sauder-style library w/ doors).
 - F4. Bed frame 55.5 × 77, deck 14", headboard top 42"; mattress 54×75×12 (US full, verified standard).
@@ -76,3 +76,4 @@ Anything not proven by a photo or a user measurement. Builders: append here (one
 - D3. Condenser re-sited to x169/y333 with the fan facing plan-right and its 33" width running toward the rail (IMG_3927); disconnect, whip, lineset and line-hide positions are eyeballed.
 - D4. Sconce is modelled switched on (warm patch on the soffit in IMG_3930) with a small shadowless point light.
 - D5. Scenery distances come from horizon-line perspective in IMG_3925/3929/3936: redwoods ~8–10 ft beyond the rail, plaza edge ~30 ft, kidney pool ~85 ft out, pool house to the SW. Pool-area fence, people, tables and the far apartment blocks are omitted; foliage is unlit alpha cards (excluded from the AO pre-pass via the isLine2 flag GTAOPass checks).
+- F-futon-2. Futon fix round 1: seat body 9" on 6" chrome cone legs with ~2.5" chrome foot discs (futon2.jpg fascia:leg ≈ 1.3:1); console is 3.5" thick and pivots 2" up the back so it lies ~8° rear-high on the seat; black steel click-clack hinge straps (1.5×6") at both ends are not visible in the front-on photos (typical hardware, ASSUMED); bolster crown/droop/yaw values are eyeballed from futon2/3.jpg.

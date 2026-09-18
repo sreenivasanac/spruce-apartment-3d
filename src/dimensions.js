@@ -304,8 +304,8 @@ export const FURNITURE = {
     base: { r: 11, armW: 1.25, rootT: 1.7, tipT: 0.85, bevel: 0.5, socketR: 0.6, hubR: 1.7, hubTop: 6.2, tipTop: 3.6 }, caster: { dia: 2.2, w: 0.75, gap: 0.5 },
     lift: { r: 1.05, pistonR: 0.55, top: 11, shroudR: 1.3, shroudTop: 9 }, mech: { w: 7, d: 9, h: 1.6, knobR: 0.9, knobH: 1.1 } },
   futon: { w: 66, d: 33, h: 31, seatH: 15, armW: 8, legH: 6, pos: [169.5, 222], rot: 90, // ASSUMED typical click-clack futon (sofa 66x33x31, bed ~66x38.5)
-    bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 1.5, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.45, dimple: 0.4, seamW: 0.75, edgeR: 0.7, pipeR: 0.23,
-    stitch: { w: 0.1, pitch: 0.15, color: 0x6a6e76 }, // top-stitch thread along the tuft seams
+    bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 1.5, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.4, dimple: 0.4, seamW: 0.95, edgeR: 0.7, pipeR: 0.23,
+    stitch: { w: 0.08, pitch: 0.15, color: 0x6a6e76 }, // top-stitch thread along the tuft seams
     consoleW: 10, consoleT: 3.5, consoleHingeUp: 2, consoleSeamFrac: 0.4, cupR: 1.55, cupDepth: 2.2, // console pivots consoleHingeUp" up the back -> lies ~8deg rear-high on the seat
     armT: 5.5, armTiltDeg: 6, bolster: { crown: 0.9, bulge: 0.8, endBulge: 0.5, pinch: 0.16, droop: 0.5, yawDeg: [1.6, -1.1], shift: [0.3, -0.15] }, // loose pillows: [left, right] differ
     legTopR: 1.05, legBotR: 0.55, footR: 1.25, footT: 0.3, stayR: 0.4, hingePlate: { w: 1.5, l: 6, t: 0.15 }, linenTile: 4 },

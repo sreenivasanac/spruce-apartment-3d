@@ -263,5 +263,8 @@ export const MAT = {
   // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
   futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
     emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
+  // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
+  futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
+    emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
 };
 export const TEX = tex;
