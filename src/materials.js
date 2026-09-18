@@ -64,6 +64,26 @@ function lvpMap(kind) {
   }, { srgb: kind === 'color' });
 }
 
+// Cherry-finish laminate/veneer: warm red-brown with fine darker grain streaks running along U. Tile = 1 m x 0.25 m.
+function cherryMap() {
+  const t = canvasTex(1024, (ctx, s) => {
+    const r = rng(23);
+    ctx.fillStyle = '#47201a'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 40; i++) { // broad tonal bands
+      ctx.fillStyle = `rgba(${r() < 0.5 ? '30,10,6' : '100,50,32'},${0.04 + r() * 0.06})`;
+      ctx.fillRect(0, r() * s, s, 8 + r() * 60);
+    }
+    for (let i = 0; i < 700; i++) { // fine grain, wraps in U
+      ctx.strokeStyle = `rgba(${r() < 0.65 ? '24,8,4' : '120,64,42'},${0.05 + r() * 0.12})`;
+      ctx.lineWidth = 0.5 + r() * 1.3;
+      const y = r() * s, a = (r() - 0.5) * 10;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke();
+    }
+  });
+  t.repeat.set(1, 4);
+  return t;
+}
+
 const tex = {
   lvp: lvpMap('color'), lvpRough: lvpMap('rough'),
   carpet: canvasTex(512, (c, s) => noise(c, s, [150, 136, 122], 70, 3)),
@@ -128,5 +148,33 @@ export const MAT = {
   mattress: std({ color: 0xf3f1ea, roughness: 0.95, name: 'mattress-white' }),
   brass: std({ color: 0xc9a24a, metalness: 1, roughness: 0.3, name: 'brass' }),
   flame: new THREE.MeshBasicMaterial({ color: 0xffc46b, name: 'flame' }),
+  // kitchen item
+  cabinetDoor: std({ color: 0xf1f0ec, roughness: 0.5, bumpMap: canvasTex(256, (ctx, s) => { const r = rng(21); ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},0.10)`; ctx.fillRect(r() * s, r() * s, 1 + r() * 2, 40 + r() * 120); } }, { repeat: [6, 3], srgb: false }), bumpScale: 0.25, name: 'cabinet-door-linear-thermofoil' }),
+  cabinetGap: std({ color: 0x2a2927, roughness: 1, name: 'cabinet-reveal-shadow' }),
+  applianceCase: std({ color: 0x2b2c2e, roughness: 0.6, metalness: 0.3, name: 'appliance-case-charcoal' }),
+  burner: std({ color: 0x34343a, roughness: 0.3, name: 'cooktop-burner-print' }),
+  // mandir: cherry with grain along U (mandir.js maps U along each board's length), darkened antique brass, silk runner base
+  cherryGrain: std({ map: cherryMap(), roughness: 0.42, name: 'cherry-grain' }),
+  antiqueBrass: std({ color: 0x8f6d34, metalness: 1, roughness: 0.42, name: 'antique-brass' }),
+  // closets / laundry: natural pine rod (grain along U, tile 0.5 m), appliance enamel, flex foil duct (4 ribs per tile along U; closets.js sets repeat so a tile = 3\"), rubber hose
+  pine: std({ map: canvasTex(512, (ctx, s) => { const r = rng(31); ctx.fillStyle = '#d2a476'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 260; i++) { ctx.strokeStyle = `rgba(${r() < 0.7 ? '150,96,52' : '235,200,160'},${0.1 + r() * 0.25})`; ctx.lineWidth = 0.6 + r() * 2.2; const y = r() * s, a = (r() - 0.5) * 24; ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke(); } }, { repeat: [2, 1] }), roughness: 0.6, name: 'pine-natural' }),
+  applianceWhite: phys({ color: 0xf3f3f1, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.25, name: 'appliance-white-enamel' }),
+  foilDuct: std({ color: 0xc9cbce, metalness: 1, roughness: 0.34, bumpMap: canvasTex(64, (ctx, s) => { for (let x = 0; x < s; x++) { const v = 128 + 120 * Math.sin((x / s) * Math.PI * 2 * 4); ctx.fillStyle = `rgb(${v | 0},${v | 0},${v | 0})`; ctx.fillRect(x, 0, 1, s); } }, { srgb: false }), bumpScale: 3, name: 'flex-foil-duct' }),
+  rubberHose: std({ color: 0x2a2b2d, roughness: 0.7, name: 'rubber-hose' }),
+  panelGray: std({ color: 0xe4e3de, roughness: 0.5, metalness: 0.1, name: 'load-centre-painted-steel' }),
+  // lighting: opal/frosted diffuser of a switched-on LED fixture (no transmission -> no extra render pass); lighting.js clones it per brightness
+  lensLit: std({ color: 0xfff6e6, roughness: 0.55, emissive: 0xffdcae, emissiveIntensity: 2.2, name: 'fixture-lens-lit' }),
+  // deck item (textured scenery materials — grass, bark, foliage, sky — are built in rooms/deck.js next to their painters)
+  stuccoSoffit: std({ color: 0xc4bdaa, roughness: 1, bumpMap: tex.stucco, bumpScale: 5, name: 'stucco-soffit-heavy' }),
+  partitionWhite: std({ color: 0xe6e4dc, roughness: 0.6, name: 'partition-white-paint' }),
+  hvacIvory: std({ color: 0xe4e1d6, roughness: 0.45, metalness: 0.1, name: 'daikin-ivory' }),
+  hvacDark: std({ color: 0x1c1d1f, roughness: 0.7, name: 'condenser-cavity' }),
+  lineset: std({ color: 0xdedcd4, roughness: 0.6, name: 'lineset-white-vinyl' }),
+  railTan: std({ color: 0xa89a82, roughness: 0.8, name: 'neighbour-rail-tan' }),
+  roofEave: std({ color: 0x8c8980, roughness: 0.9, name: 'roof-eave' }),
+  // openings item: cheap window glass (no transmission pass; never casts shadows), insect screen, corridor-side door paint
+  glassPane: phys({ color: 0xdfe8e6, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.1, depthWrite: false, envMapIntensity: 2.5, specularIntensity: 1, side: THREE.DoubleSide, name: 'window-glass' }),
+  insectScreen: std({ color: 0x3a3c3e, roughness: 1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, name: 'insect-screen' }),
+  corridorTrim: std({ color: 0x8f8a80, roughness: 0.5, name: 'corridor-door-frame-taupe' }),
 };
 export const TEX = tex;
