@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spruce Apartment 3D</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.4 system-ui, sans-serif; color: #eee; }
+    #app { position: fixed; inset: 0; }
+    #ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; }
+    #ui button { background: #1e1f22cc; color: #eee; border: 1px solid #555; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+    #ui button[aria-pressed="true"] { background: #e9e4d8; color: #111; }
+    #help { position: fixed; bottom: 12px; left: 12px; background: #1e1f22cc; padding: 8px 10px; border-radius: 6px; max-width: 520px; z-index: 5; }
+    .dim { color: #111; background: #ffffffd9; padding: 1px 5px; border-radius: 3px; font-size: 12px; white-space: nowrap; }
+    body.shot #ui, body.shot #help { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="ui" role="toolbar" aria-label="View controls">
+    <button data-mode="dollhouse">Dollhouse</button>
+    <button data-mode="walk">Walk</button>
+    <button data-mode="plan">Plan</button>
+    <button id="dims" aria-pressed="false">Dimensions</button>
+    <button id="reset">Reset furniture</button>
+  </div>
+  <div id="help"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
