@@ -237,7 +237,12 @@ export const MAT = {
     roughnessMap: canvasTex(256, (ctx, s) => { noise(ctx, s, [70, 70, 70], 50, 41); const r = rng(42); for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '150,150,150' : '40,40,40'},${0.1 + r() * 0.2})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 6 + r() * 40, 4 + r() * 18, r() * 3, 0, 7); ctx.fill(); } }, { repeat: [2, 2], srgb: false }),
     map: canvasTex(256, (ctx, s) => { const r = rng(43); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 50; i++) { ctx.fillStyle = `rgba(${r() < 0.6 ? '150,110,70' : '255,235,190'},${0.08 + r() * 0.16})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 8 + r() * 45, 5 + r() * 20, r() * 3, 0, 7); ctx.fill(); } }, { repeat: [2, 2] }) }),
   // closets / laundry: natural pine rod (grain along U, tile 0.5 m), appliance enamel, flex foil duct (4 ribs per tile along U; closets.js sets repeat so a tile = 3\"), rubber hose
-  pine: std({ map: canvasTex(512, (ctx, s) => { const r = rng(31); ctx.fillStyle = '#d2a476'; ctx.fillRect(0, 0, s, s); for (let i = 0; i < 260; i++) { ctx.strokeStyle = `rgba(${r() < 0.7 ? '150,96,52' : '235,200,160'},${0.1 + r() * 0.25})`; ctx.lineWidth = 0.6 + r() * 2.2; const y = r() * s, a = (r() - 0.5) * 24; ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke(); } }, { repeat: [2, 1] }), roughness: 0.6, name: 'pine-natural' }),
+  pine: std({ map: canvasTex(512, (ctx, s) => { // strong cathedral grain + latewood streaks along U, one knot per tile. ponytail: one shared tile (half a rod long) so knots squash on the short rods; per-rod textures if that ever shows
+    const r = rng(31); ctx.fillStyle = '#d9ad7c'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 300; i++) { const late = r() < 0.6; ctx.strokeStyle = `rgba(${late ? '122,72,34' : '240,208,166'},${late ? 0.18 + r() * 0.42 : 0.1 + r() * 0.25})`; ctx.lineWidth = 0.6 + r() * (late ? 3.2 : 2); const y = r() * s, a = (r() - 0.5) * 30; ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke(); }
+    for (const [cx, cy] of [[s * 0.3, s * 0.35], [s * 0.75, s * 0.8]]) for (let k = 1; k <= 6; k++) { ctx.strokeStyle = `rgba(112,64,30,${0.5 - k * 0.05})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, cy, k * 34, k * 9, 0, -Math.PI / 2, Math.PI / 2); ctx.stroke(); } // cathedral arches
+    const kx = s * 0.93, ky = s * 0.55; for (let k = 5; k >= 1; k--) { ctx.fillStyle = k === 1 ? '#4a2812' : `rgba(110,60,26,${0.22 + (5 - k) * 0.1})`; ctx.beginPath(); ctx.ellipse(kx, ky, k * 1.8, k * 11, 0, 0, 7); ctx.fill(); }
+  }, { repeat: [2, 1] }), roughness: 0.55, name: 'pine-natural' }),
   applianceWhite: phys({ color: 0xf3f3f1, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.25, name: 'appliance-white-enamel' }),
   foilDuct: std({ color: 0xc9cbce, metalness: 1, roughness: 0.34, bumpMap: canvasTex(64, (ctx, s) => { for (let x = 0; x < s; x++) { const v = 128 + 120 * Math.sin((x / s) * Math.PI * 2 * 4); ctx.fillStyle = `rgb(${v | 0},${v | 0},${v | 0})`; ctx.fillRect(x, 0, 1, s); } }, { srgb: false }), bumpScale: 3, name: 'flex-foil-duct' }),
   rubberHose: std({ color: 0x2a2b2d, roughness: 0.7, name: 'rubber-hose' }),
@@ -266,5 +271,13 @@ export const MAT = {
   // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
   futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
     emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
+  // closets (fix round 1): opaque enamelled-steel wire bracket, lifted shelf white (closet interiors get almost no bounce light), knob chrome that stays bright
+  // in the dim IBL, smoky dryer / dark washer door glass, drum interiors (self-lit a little: the cavity is fully shadowed)
+  whiteEnamel: std({ color: 0xf4f3ef, roughness: 0.35, metalness: 0, name: 'white-enamel-steel' }),
+  closetShelf: std({ color: 0xeeece6, roughness: 0.45, emissive: 0xeeece6, emissiveIntensity: 0.1, name: 'closet-shelf-white-semigloss' }),
+  knobChrome: std({ color: 0xf2f3f4, metalness: 0.75, roughness: 0.22, envMapIntensity: 2.5, name: 'knob-chrome' }),
+  dryerGlass: phys({ color: 0x15181b, roughness: 0.08, transparent: true, opacity: 0.5, depthWrite: false, name: 'dryer-door-glass-smoke' }),
+  washerGlass: phys({ color: 0x0a0a0c, roughness: 0.08, transparent: true, opacity: 0.8, depthWrite: false, name: 'washer-door-glass-dark' }),
+  drumSteel: std({ color: 0x4a4d50, metalness: 0.7, roughness: 0.4, emissive: 0x8a8d90, emissiveIntensity: 0.4, side: THREE.DoubleSide, name: 'drum-stainless' }),
 };
 export const TEX = tex;

@@ -228,14 +228,17 @@ export const LAUNDRY = {
   unit: { w: 23.5, d: 26, h: 33.5 }, stackGap: 0.5,
   // GE 24" front-load pair, IMG_3945. Units sit against the plan-up (y=63) side; 5.5" gap on the plan-down side holds duct/cord/hoses.
   sideGap: 1, frontX: 99.5, feetH: 0.6, edgeR: 0.7, stackKitInset: 0.4,
-  panelH: 6.2, panelInset: 0.9, // control fascia strip at the top of each front
-  door: { cz: 15.2, outerDia: 19.5, glassDia: 13.5, glassDomeR: 4, proud: 1.5 }, // cz = door centre above unit bottom
-  knob: { dia: 2.3, proud: 1.1, dryerFromLeft: 9.3, washerFromLeft: 17 },
+  panelH: 5.6, panelInset: 0.9, // control fascia strip at the top of each front (bottom edge just clears the dryer door ring)
+  door: { cz: { dryer: 17.2, washer: 16.8 }, outerDia: 19.5, glassDia: { dryer: 14.5, washer: 15.5 }, glassDomeR: 4, proud: 1.5 }, // cz = door centre above unit bottom (IMG_3945: 0.52 / 0.50 of unit height)
+  drum: { depth: 12, clear: 0.3, paddleW: 2.2, paddleH: 1.5, lintW: 7, lintH: 1.8, lintD: 1.5, perfPitch: 0.55 }, // drum seen through the door glass; clear = drum radius beyond the glass radius
+  knobCap: { dia: 1, taper: 0.82, ringW: 0.25, ringT: 0.15 }, // dark centre cap, knob face taper, white skirt ring under the chrome knob
+  knob: { dia: 2.3, proud: 1.1, dryerFromLeft: 12, washerFromLeft: 17 },
   drawer: { w: 7.2, h: 3.4, fromLeft: 1.4 }, // washer detergent drawer
-  filterCover: { dia: 3.2, fromRight: 3.6, elev: 3.4 },
-  label: { w: 6.6, h: 5.2, fromLeft: 1.2, elev: 1.6 }, // dryer instruction sticker
-  duct: { dia: 4.1, topX: 94, bottomX: 73, topElev: 96, bottomElev: 37 }, // flex foil in the plan-down side gap: ceiling at the front -> behind the dryer
-  receptacle: { w: 4.5, h: 4.5, d: 1.8, x: 91, elev: 47 }, cordDia: 0.55, cordHookElev: 79,
+  filterCover: { dia: 4.2, fromRight: 3.6, elev: 3.4, grooveW: 0.12, recess: 0.06 }, // round pump-filter door, bottom-right of the washer front
+  label: { w: 6.2, h: 7.9, fromLeft: 1.2, elev: 0.4 }, // two stacked dryer stickers (grey 'So Fresh…' over red-headed instructions), portrait, top just clears the door ring
+  duct: { dia: 4.1, topX: 94, bottomX: 73, topElev: 95.6, bottomElev: 37, collarDia: 5.4, collarH: 0.4 }, // flex foil in the plan-down side gap: ceiling at the front -> behind the dryer
+  receptacle: { w: 2.75, h: 4.5, d: 1.8, x: 91, elev: 44, plug: { w: 2.1, h: 2.5, d: 1.2, inset: 0.3, up: 1 } }, // small grey single-gang 30A box, centre ~46" (IMG_3945)
+  cordDia: 0.55, cordHookElev: 79,
   cordLowElev: 30, washerBox: { w: 9, h: 7, d: 0.6, x: 72.5, elev: 17 }, hoseDia: 0.9, drainDia: 1.2,
 };
 // Closet shelf + rod (IMG_3938 bedroom closet, IMG_3940 linen): white painted shelf on wall cleats, natural pine rod below.
@@ -243,8 +246,10 @@ export const CLOSET = {
   shelfTop: 69, shelfD: 12, shelfT: 0.75, noseR: 0.25,
   cleat: { h: 3.5, t: 0.75 }, // 1x4 cleats on back + side walls; side cleats carry the rod sockets
   rod: { dia: 1.3125, centreBelowShelf: 2.6, out: 10.5 }, socket: { dia: 2.4, t: 0.5 },
-  bracket: { padW: 3.5, plateW: 1.1, plateH: 10, plateT: 0.12, arm: 11, strutDia: 0.45, minSpan: 48 }, // centre shelf-and-rod bracket on spans >= minSpan
-  panel: { w: 14.5, h: 30, proud: 0.75, top: 60, x0: 114.5, doorInset: 0.9, latch: { w: 0.9, h: 0.55 } }, // load centre, bedroom-closet back wall
+  bracket: { padW: 3, plateW: 1.1, plateH: 6.5, plateT: 0.12, strutFoot: 1, arm: 11, strutDia: 0.45, minSpan: 48 }, // centre shelf-and-rod bracket on spans >= minSpan
+  panel: { w: 14.5, h: 30, proud: 0.75, top: 60, x0: 114.5, doorInset: 0.9, cornerR: 0.15,
+    door: { t: 0.12, r: 0.05 }, latch: { w: 0.9, h: 0.55, t: 0.06, inset: 1.6, at: [0.22, -0.2] }, // at = fractions of door height from centre
+    hinge: { l: 1, r: 0.12, at: [0.36, 0, -0.36] }, label: { w: 1.5, h: 0.7, t: 0.04, insetX: 1.8, insetY: 1.6 } }, // load centre, bedroom-closet back wall
 };
 
 // ---------------------------------------------------------------- fixtures
