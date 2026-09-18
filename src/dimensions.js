@@ -128,11 +128,11 @@ export const SLIDER = {
   sash: { stile: 2.5, top: 2.5, bottom: 3.5, t: 1.4, overlap: 2.5 }, pull: { elev: 36, h: 8, w: 1.4, proj: 1.3 },
   screen: { frame: 1.25, t: 0.4 },
   valance: { x0: 158.5, x1: 288, h: 5.5, d: 4.5, elev: 86, boardT: 0.75 }, // IMG_3925: runs ~9" past the S casing and over the blind stack
-  blindsStackAt: 'a', blindsStack: [160, 183], vanes: 34, vaneW: 3.4, vaneBottom: 1.5, vaneTop: 88,
+  blindsStackAt: 'a', blindsStack: [160, 183], vanes: 34, vaneW: 3.4, vanePleat: 0.5, vaneBottom: 1.5, vaneTop: 88,
 };
 export const BED_WINDOW = {
   a: 47, b: 119, sill: 24, head: 80, frame: 2, frameD: 3, sash: 1.6, sashT: 1.2, mullion: 2,
-  blindValance: { h: 3, d: 2.5, w: 76, elev: 83 }, blind: { slats: 26, slatW: 2, slatPitch: 0.15, railH: 0.7, cordDrop: 24 },
+  blindValance: { h: 3, d: 2.5, overhang: 2, drop: 1 }, blind: { slats: 26, slatW: 2, slatPitch: 0.15, railH: 0.7, cordDrop: 24 },
 };
 // Door joinery + hardware (openings item). Shell openings are the FINISHED openings; jamb = thin white lining.
 export const DOOR_HW = {
@@ -154,7 +154,7 @@ export const DECK = {
   capT: 1.5, slatsFront: 18, slatsReturn: 7, slatBelowFloor: 8, apronH: 5.5, bottomRailH: 3.5, bottomRailGap: 3, post: { w: 3.5, d: 2.5 }, postsAt: [0.27, 0.5, 0.73],
   slabT: 10, fasciaT: 1.5, skinT: 0.6, // stucco skin over the framed wall
   soffitElev: 94, dripEdge: { h: 2, t: 0.75 }, // soffit = underside of the balcony slab above
-  partition: { t: 3, gapBelow: 5, frameW: 2.5, battenW: 2.5, battenT: 0.75, pitch: 8.5, post: 3.5 }, // IMG_3930
+  partition: { t: 3, gapBelow: 5, frameW: 2.5, battenW: 3, battenT: 0.75, pitch: 9.5, post: 3.5 }, // IMG_3930
   sconce: { dia: 5, h: 9, x: 303, elev: 85, plateW: 5.5, plateH: 11, bandH: 0.8 }, // cylinder sconce above the partition (IMG_3930)
   disconnect: { w: 5, h: 8, d: 3, x: 166, elev: 44 }, linesetDia: 1.1, lineHide: { w: 3, d: 2.5, x: 177 },
   // building massing beyond the unit (ASSUMED, stylised): mirrored units, 3 storeys at 108" floor-to-floor
@@ -162,18 +162,19 @@ export const DECK = {
 };
 // Stylised exterior backdrop (assumption A10): positions estimated by perspective from IMG_3926-3930. Plan inches.
 export const SCENERY = {
-  redwoods: [ // x, y, base diameter; first two are the trunks framing the pool in IMG_3929
-    [300, 470, 44], [105, 500, 40], [420, 1180, 40], [-60, 1350, 36], [640, 640, 38], [-230, 760, 34], [60, 1700, 40], [-420, 1250, 36], [330, 1750, 38], [900, 1500, 40],
+  redwoods: [ // x, y, base diameter; first two frame the pool in IMG_3929 (A also fills the slider in IMG_3925, B the bedroom window in IMG_3936)
+    [300, 470, 44], [105, 500, 40], [590, 560, 38], [-230, 760, 34], [-420, 1250, 36], [60, 2150, 40], [430, 2050, 38], [950, 1750, 40], [-330, 1950, 36], [780, 2350, 38],
   ],
   redwoodH: 1100, canopyFrom: 230, mulchR: 85, // canopyFrom = lowest boughs above grade
-  pool: { cx: 190, cy: 975, a: 215, b: 95, bend: 75, coping: 9, waterDrop: 3 },
-  poolDeck: { cx: 200, cy: 965, r: 330, apronTo: [330, 640, 980, 1260], joint: 120, lift: 4 },
+  // distances from horizon-line perspective in IMG_3925/3929/3936: pool ~90 ft out, plaza edge ~30 ft out
+  pool: { cx: 190, cy: 1400, a: 285, b: 135, bend: 90, coping: 10, waterDrop: 3 },
+  poolDeck: { cx: 200, cy: 1350, r: 620, apronTo: [560, 780, 1250, 1450], joint: 120, lift: 4 },
   path: { w: 50 },
-  poolHouse: { x0: 520, y0: 860, w: 400, d: 340, wallH: 104, eaveOver: 34, fasciaH: 14, roofBase: 300, roofH: 150 },
+  poolHouse: { x0: 690, y0: 850, w: 420, d: 420, wallH: 104, eaveOver: 34, fasciaH: 14, roofBase: 320, roofH: 160, rotDeg: 18 },
   loungersNear: 6, loungersFar: 5, lounger: { w: 26, l: 76, seatH: 13, backL: 28, backDeg: 50 },
-  umbrellas: [[30, 1150], [-40, 1080], [420, 1190], [-110, 1190]], umbrella: { r: 54, h: 96, canopyH: 20 },
-  lampPosts: [[166, 605], [-150, 700]], lampH: 90,
-  farTreeRing: [1700, 3200], farTreeCount: 70, farTreeH: [450, 1100],
+  umbrellas: [[-20, 1690], [-110, 1600], [560, 1560], [-200, 1720]], umbrella: { r: 54, h: 96, canopyH: 20 },
+  lampPosts: [[166, 700], [-260, 800]], lampH: 90,
+  farTreeRing: [2300, 3600], farTreeCount: 70, farTreeH: [450, 1100], centreY: 1400,
   shrubBed: { y0: 309, y1: 420 }, // mulch + shrubs along the building, below the bedroom window and the deck
   skyR: 9000, lawnR: 5000,
 };
@@ -256,7 +257,7 @@ export const FIXTURES = {
   entryFlush: { dia: 13, h: 3.75, cx: 125, cy: 30 },
   bathFlush: { dia: 13, h: 3.75, cx: 36, cy: 51 }, // ASSUMED (no photo of the bath ceiling)
   vanityBar: { dia: 4.5, cage: 2.2, standoff: 1.5, plateH: 4.5, plateT: 0.6 }, // length + elevation: BATH.vanity.light (IMG_3941)
-  miniSplit: { w: 32, h: 11.5, d: 8.5, elevTop: 92, wall: 'bed-liv', cy: 278 }, // bedroom head, IMG_3935
+  miniSplit: { w: 32, h: 11.5, d: 8.5, elevTop: 92, wall: 'bed-liv', cy: 281 }, // bedroom head, IMG_3935; IMG_3939: end ~4" from the window wall
   outlets: { elev: 14, switchElev: 46 },
 };
 
@@ -277,7 +278,7 @@ export const FINISHES = {
     { id: 'vanity-switch', kind: 'rocker2', p: [32.5, 70.5], n: [0, 1], elev: 48 }, // IMG_3941 between vanity and bath door
     { id: 'bed-s-outlet-1', kind: 'outlet', p: [148, 168], n: [-1, 0], elev: 14 }, // IMG_3937/3939
     { id: 'bed-s-outlet-2', kind: 'outlet', p: [148, 266], n: [-1, 0], elev: 14 }, // IMG_3935/3939 below the mini-split
-    { id: 'bed-s-cable', kind: 'coax', p: [148, 281], n: [-1, 0], elev: 14 }, // IMG_3939
+    { id: 'bed-s-cable', kind: 'coax', p: [148, 283], n: [-1, 0], elev: 14 }, // IMG_3939
     { id: 'bed-w-outlet', kind: 'outlet', p: [28, 301], n: [0, -1], elev: 14 }, // IMG_3935 between window and N corner
     { id: 'bed-n-outlet-1', kind: 'outlet', p: [6, 182], n: [1, 0], elev: 14 }, // IMG_3935 bottom right
     { id: 'bed-n-outlet-2', kind: 'outlet', p: [6, 262], n: [1, 0], elev: 14 }, // IMG_3937 bottom left
@@ -285,8 +286,8 @@ export const FINISHES = {
   transition: { w: 1.75, h: 0.7 }, // vinyl reducer LVP -> carpet across the bedroom entry (IMG_3937)
   smoke: [{ id: 'entry', cx: 114, cy: 80, dia: 5.5, h: 1.6, button: 0.9 }], // IMG_3933 ceiling, outside the W/D + hall doors
   chime: { cx: 76.2, elev: 87.2, w: 2.75, h: 3.5, d: 1, r: 0.3, slots: 5, slotW: 0.07, slotH: 0.55, slotPitch: 0.22 }, // IMG_3937 on the pier above/left of the closet head
-  miniSplit: { endR: 0.5, grooveFrac: 0.6, grooveH: 0.12, louverD: 2.4, louverT: 0.2, louverFrac: 0.88,
-    display: { w: 2.2, h: 0.5 }, badge: { w: 1.8, h: 0.35 }, remote: { w: 2.4, h: 5.2, d: 0.8, cy: 290, elev: 76, lcd: [1.5, 1.3] } }, // IMG_3939: remote cradle below the head
+  miniSplit: { endR: 0.5, grooveFrac: 0.6, grooveH: 0.2, louverD: 2.4, louverT: 0.2, louverFrac: 0.88,
+    display: { w: 2.2, h: 0.5 }, badge: { w: 1.8, h: 0.35 }, remote: { w: 2.4, h: 5.2, d: 0.8, cy: 294, elev: 76, lcd: [1.5, 1.3] } }, // IMG_3939: remote cradle below the head
 };
 
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
@@ -301,11 +302,11 @@ export const FURNITURE = {
     bodyW: 61, backL: 17, backT: 6, backBand: 2, gusset: 2.4, reclineDeg: 20, seatGrid: [6, 2], backGrid: [3, 3], puff: 0.8, dimple: 0.45, edgeR: 1.2, pipeR: 0.17,
     consoleW: 10, consoleT: 4, cupR: 1.55, cupDepth: 2.2, armT: 5.5, armTiltDeg: 6, legTopR: 1.05, legBotR: 0.55, stayR: 0.4, linenTile: 4 },
   // rot -90: the table's front (+Z, the side the top lifts toward) faces the futon sitter (plan -x)
-  liftTop: { w: 41, d: 19.5, h: 16.5, legH: 5.5, liftRise: 7.5, liftFwd: 6, marbleW: 15, pos: [209, 222], rot: -90, // ASSUMED; ~13" knee gap to the futon front
-    topT: 0.7, panelT: 0.6, fasciaInset: 0.4, topGap: 0.08, edgeR: 0.04, cornerR: 0.1,
-    leg: { topR: 0.8, botR: 0.5, inset: 2.6, splayDeg: 3, centreR: 0.4, footH: 0.25 },
-    mech: { closedDeg: 8, armW: 0.8, armT: 0.14, armGap: 6, frontPivotZ: 7.5, railW: 0.5, railH: 0.8, plateT: 0.12, plateH: 1.8, pinR: 0.22, barR: 0.2,
-      spring: { bodyR: 0.36, rodR: 0.15, along: 5, baseBack: 9, baseDrop: 5.5 }, seconds: 0.9 } },
+  liftTop: { w: 41, d: 19.5, h: 14.5, legH: 6, liftRise: 7.5, liftFwd: 6, marbleW: 16.5, pos: [209, 222], rot: -90, // w/d user-given; h ASSUMED from lift_top1/2.jpg proportions (F2); ~13" knee gap to the futon front
+    topT: 0.7, topOver: 0.5, panelT: 0.9, fasciaT: 0.6, fasciaInset: 0.25, topGap: 0.08, edgeR: 0.04, cornerR: 0.1, plankW: 6.5, seamW: 0.03,
+    leg: { topR: 0.85, botR: 0.65, inset: 2.2, splayDeg: 3, centreR: 0.4, footH: 0.25 },
+    mech: { closedDeg: 8, armW: 0.8, armT: 0.14, armGap: 6, frontPivotZ: 7.2, railW: 0.5, railH: 0.8, plateT: 0.12, plateH: 1.8, plateL: 12, pinR: 0.22, barR: 0.2,
+      spring: { bodyR: 0.36, rodR: 0.15, along: 5, baseBack: 5, baseDrop: 4 }, seconds: 0.9 } },
   mandir: { w: 29.5, d: 13, h: 71, baseH: 28, pos: [188, 12.8], rot: 0, // bookcase, ASSUMED Sauder-style 5-shelf w/ doors
     // carcass details scaled off bookcase.jpg (w/h/d are OVERALL incl. cornice overhang)
     corniceH: 4.75, corniceSteps: [[0.9, 0.25], [0.7, 0.5], [0.65, 0.7], [2.5, 1]], corniceOver: 1, sideT: 1.5, backT: 0.25, topT: 0.75,
@@ -319,13 +320,13 @@ export const FURNITURE = {
     post: 1.5, railH: 2.5, railT: 1, slats: 9, slat: 0.75, centreRail: { w: 1.5, h: 1.5 }, centreLegs: 3, leg: 1.25, footLegInset: 5, foot: { w: 1.6, h: 0.35 }, steelR: 0.1,
     panel: { bottom: 23.5, top: 37, t: 1.9, channels: 9, r: 0.55, bar: 0.75, usb: { w: 3.2, h: 1.6, t: 0.3, inset: 1.3 } },
     mattR: 1.6, sheetT: 0.15, sheetDrop: 10.2,
-    duvet: { th: 1.4, side: 9, foot: 8.5, foldAt: 27, foldW: 11, hemR: 0.4, wrinkle: 0.22, flare: 0.18, cornerDrop: 11.5 },
-    pillow: { w: 25.5, d: 18.5, h: 6.5, tiltDeg: 20, gap: 0.6 } },
+    duvet: { th: 1.4, side: 11.5, foot: 10, foldAt: 27, foldW: 11, hemR: 0.4, wrinkle: 0.22, flare: 0.5, cornerSag: 0.25 },
+    pillow: { w: 26, d: 19.5, h: 7, waist: 0.05, tiltDeg: 11, gap: 0.4, sink: 0.4 } },
   // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
   wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, pos: [135.7, 238], rot: -90 }, // 47" user-given
   wifeChair: { module: 'chair', w: 25, d: 25, h: 47, seatH: 18.5, pos: [108, 238], rot: 90 },
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
-  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, frameW: 1.55, panelR: 1.0, handle: { w: 1.05, h: 3.6, proj: 0.45, bar: 0.22 }, ribPitch: 0.85, ribW: 0.3, ribT: 0.12, rodDia: 0.75, rodDrop: 2.6, openDeg: 105, pos: [16.1, 279.5], rot: 90 },
+  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 23.5, 14], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, frameW: 1.55, panelR: 1.0, handle: { w: 1.05, h: 3.6, proj: 0.45, bar: 0.22 }, ribPitch: 1.3, ribW: 0.5, ribT: 0.14, rodDia: 0.75, rodDrop: 2.6, openDeg: 105, pos: [16.1, 279.5], rot: 90 },
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.
