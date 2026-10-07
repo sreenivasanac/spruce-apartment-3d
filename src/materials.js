@@ -44,20 +44,20 @@ function lvpMaps() {
   const col = mk(2048), rough = mk(1024), bump = mk(1024), all = [col, rough, bump];
   bump.fillStyle = '#808080'; bump.fillRect(0, 0, S, S);
   const plank = (x0, y0, seed) => {
-    const r = rng(seed), v = 0.9 + r() * 0.2, warm = r() * 5;
+    const r = rng(seed), v = 0.95 + r() * 0.1, warm = r() * 5; // +-5%: floor reads as one dark sheet (IMG_3932)
     for (const c of all) { c.save(); c.beginPath(); c.rect(x0, y0, pl, ph); c.clip(); }
-    col.fillStyle = `rgb(${(43 + warm) * v | 0},${31 * v | 0},${27 * v | 0})`; col.fillRect(x0, y0, pl, ph);
-    const g = 98 + r() * 16 | 0; rough.fillStyle = `rgb(${g},${g},${g})`; rough.fillRect(x0, y0, pl, ph); // satin: roughness ~0.38-0.45
-    for (let i = 0; i < 4; i++) { col.fillStyle = `rgba(${r() < 0.5 ? '18,10,8' : '110,80,64'},${0.04 + r() * 0.07})`; col.fillRect(x0, y0 + r() * ph, pl, 6 + r() * 30); } // tonal bands
+    col.fillStyle = `rgb(${(33 + warm * 0.6) * v | 0},${26 * v | 0},${23 * v | 0})`; col.fillRect(x0, y0, pl, ph);
+    const g = 72 + r() * 12 | 0; rough.fillStyle = `rgb(${g},${g},${g})`; rough.fillRect(x0, y0, pl, ph); // satin: roughness ~0.28-0.33 -> tight whitish sun glare, diffuse stays espresso (IMG_3933)
+    for (let i = 0; i < 4; i++) { col.fillStyle = `rgba(${r() < 0.5 ? '16,11,9' : '92,78,68'},${0.04 + r() * 0.07})`; col.fillRect(x0, y0 + r() * ph, pl, 6 + r() * 30); } // tonal bands
     for (let i = 0; i < 110; i++) { // grain streaks along the plank, every third one embossed
       const gy = y0 + r() * ph, gx = x0 + r() * pl - 100, len = 120 + r() * 520, a = (r() - 0.5) * 7, dark = r() < 0.55;
       const path = (c) => { c.beginPath(); c.moveTo(gx, gy); c.bezierCurveTo(gx + len / 3, gy + a, gx + 2 * len / 3, gy - a, gx + len, gy + a * 0.3); c.stroke(); };
-      col.strokeStyle = `rgba(${dark ? '16,9,7' : '108,80,64'},${0.07 + r() * 0.13})`; col.lineWidth = 0.6 + r() * 2.2; path(col);
+      col.strokeStyle = `rgba(${dark ? '15,10,8' : '94,80,70'},${0.07 + r() * 0.13})`; col.lineWidth = 0.6 + r() * 2.2; path(col);
       if (i % 3 === 0) { bump.strokeStyle = 'rgba(40,40,40,0.35)'; bump.lineWidth = 1.5; path(bump); rough.strokeStyle = 'rgba(190,190,190,0.25)'; rough.lineWidth = 1.5; path(rough); }
     }
-    col.fillStyle = 'rgba(8,5,4,0.8)'; col.fillRect(x0, y0, 2, ph); col.fillRect(x0, y0, pl, 2); // butt + long joint
-    rough.fillStyle = 'rgb(225,225,225)'; rough.fillRect(x0, y0, 2, ph); rough.fillRect(x0, y0, pl, 2);
-    bump.fillStyle = 'rgba(0,0,0,0.85)'; bump.fillRect(x0, y0, 4, ph); bump.fillRect(x0, y0, pl, 4); // micro-bevel groove
+    col.fillStyle = 'rgba(8,5,4,0.3)'; col.fillRect(x0, y0, 1, ph); col.fillRect(x0, y0, pl, 1); // butt + long joint: barely visible in IMG_3932/3933
+    rough.fillStyle = 'rgb(150,150,150)'; rough.fillRect(x0, y0, 1, ph); rough.fillRect(x0, y0, pl, 1);
+    bump.fillStyle = 'rgba(0,0,0,0.3)'; bump.fillRect(x0, y0, 2, ph); bump.fillRect(x0, y0, pl, 2); // micro-bevel groove
     for (const c of all) c.restore();
   };
   const r = rng(7);
@@ -86,12 +86,27 @@ function wrapped(s, x, y, rad, fn) {
 }
 const blob = (ctx, x, y, rad, rgb, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, rad); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2); };
 
-// Light orange-peel drywall texture (height map): overlapping soft splatter blobs ~1/8"-1/4" across.
+// Light orange-peel drywall texture (height map): overlapping soft splatter blobs ~0.3"-0.9" across (visible at room distance in the IMG_3935 sun patch).
 function orangePeelMap() {
   return canvasTex(1024, (ctx, s) => {
     const r = rng(5), px = s / FINISHES.wallTextureTile; // px per inch
     ctx.fillStyle = '#707070'; ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 9000; i++) { const rad = (0.06 + r() * 0.13) * px, a = 0.25 + r() * 0.45; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, '255,255,255', a)); }
+    for (let i = 0; i < 2600; i++) { const rad = (0.15 + r() * 0.3) * px, a = 0.25 + r() * 0.45; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, '255,255,255', a)); }
+  }, { srgb: false });
+}
+
+// Knock-down drywall texture (height map): flattened splatter islands ~1/4"-3/4" across with flat tops (IMG_3945/3940/3946).
+function knockdownMap() {
+  return canvasTex(1024, (ctx, s) => {
+    const r = rng(15), px = s / FINISHES.wallTextureTile;
+    ctx.fillStyle = '#585858'; ctx.fillRect(0, 0, s, s);
+    ctx.filter = 'blur(2px)'; ctx.fillStyle = '#9c9c9c';
+    for (let i = 0; i < 1500; i++) { // each island = 3 overlapping lobes -> irregular outline
+      const cx = r() * s, cy = r() * s, R = (0.12 + r() * 0.26) * px;
+      for (let k = 0; k < 3; k++) { const ox = (r() - 0.5) * R * 1.4, oy = (r() - 0.5) * R * 1.4, rx = R * (0.5 + r() * 0.6), ry = R * (0.4 + r() * 0.5), rot = r() * 3;
+        wrapped(s, cx + ox, cy + oy, R * 2, (x, y) => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, 7); ctx.fill(); }); }
+    }
+    ctx.filter = 'none';
   }, { srgb: false });
 }
 
@@ -100,10 +115,11 @@ function carpetMaps() {
   const mottled = (base, amp, seed, n, alpha, tuft) => (ctx, s) => {
     noise(ctx, s, base, amp, seed);
     const r = rng(seed + 1);
-    for (let i = 0; i < 14000; i++) { const rad = 2.5 + r() * 5, lite = r() < 0.5; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? tuft[0] : tuft[1], 0.1 + r() * 0.22)); } // yarn tufts ~1/4" so the pile still reads from across the room
+    for (let i = 0; i < 6000; i++) { const rad = 5 + r() * 7, lite = r() < 0.5; wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? tuft[0] : tuft[1], 0.16 + r() * 0.3)); } // chunky yarn tufts ~3/8" so the pile still reads from across the room
+    if (n) for (let k = 0, bw = s / 3; k < 2; k++) { ctx.fillStyle = `rgba(${k ? '255,245,232' : '0,0,0'},0.08)`; ctx.fillRect(k * bw, 0, bw, s); } // 12" vacuum tracks along plan-y: dark / light nap / untouched base (IMG_3939)
     for (let i = 0; i < n; i++) { const rad = 25 + r() * 110, lite = r() < 0.5, a = alpha * (0.5 + r()); wrapped(s, r() * s, r() * s, rad, (x, y) => blob(ctx, x, y, rad, lite ? '215,200,184' : '70,60,52', a)); }
   };
-  return [canvasTex(1024, mottled([126, 113, 101], 60, 3, 220, 0.045, ['196,180,164', '62,52,44'])), canvasTex(1024, mottled([128, 128, 128], 160, 4, 0, 0, ['255,255,255', '0,0,0']), { srgb: false })];
+  return [canvasTex(1024, mottled([104, 92, 82], 60, 3, 220, 0.05, ['196,180,164', '62,52,44'])), canvasTex(1024, mottled([128, 128, 128], 160, 4, 0, 0, ['255,255,255', '0,0,0']), { srgb: false })];
 }
 
 // Wall-plate faces at 64 px/in (white thermoplastic). kind: outlet | gfci | rocker | rocker2 | coax. Sizes: FINISHES.plate.
@@ -139,23 +155,29 @@ function plateMat(kind) {
   return new THREE.MeshStandardMaterial({ map: t, roughness: 0.42, name: "plate-" + kind });
 }
 
-// Cherry-finish laminate/veneer: warm red-brown with fine darker grain streaks running along U. Tile = 1 m x 0.25 m.
-function cherryMap() {
+// Cherry-finish laminate (Sauder "select cherry"): deep low-saturation brown, broad soft cathedral/flame figure + sparse fine
+// pores, grain along U. Tile = 1.25 m x 0.4 m. relief=true draws the same figure in greys for the bump/roughness map.
+function cherryMap(relief = false) {
   const t = canvasTex(1024, (ctx, s) => {
     const r = rng(23);
-    ctx.fillStyle = '#55261a'; ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 24; i++) { // broad, low-contrast tonal bands (mostly lighter so boards don't read as different stock)
-      ctx.fillStyle = `rgba(${r() < 0.25 ? '50,20,10' : '150,80,45'},${0.03 + r() * 0.05})`;
-      ctx.fillRect(0, r() * s, s, 8 + r() * 60);
+    ctx.fillStyle = relief ? '#808080' : '#43201a'; ctx.fillRect(0, 0, s, s);
+    const wavy = (y, amp, k, ph) => { ctx.beginPath(); for (let x = 0; x <= s; x += 16) ctx.lineTo(x, y + amp * Math.sin((x / s) * Math.PI * 2 * k + ph)); ctx.stroke(); }; // integer k -> wraps in U
+    ctx.filter = 'blur(7px)';
+    for (let i = 0; i < 9; i++) { // wide soft figure bands, each drawn 3x so it wraps in V
+      const dark = r() < 0.45, y = r() * s, amp = 6 + r() * 16, k = 1 + Math.floor(r() * 2), ph = r() * 7;
+      ctx.strokeStyle = relief ? `rgba(${dark ? '60,60,60' : '170,170,170'},0.25)` : `rgba(${dark ? '38,15,9' : '110,55,32'},${0.1 + r() * 0.12})`;
+      ctx.lineWidth = 20 + r() * 60;
+      for (const o of [-s, 0, s]) wavy(y + o, amp, k, ph);
     }
-    for (let i = 0; i < 800; i++) { // fine grain, wraps in U; lighter orange streaks dominate like bookcase.jpg
-      ctx.strokeStyle = `rgba(${r() < 0.4 ? '40,14,6' : '150,80,45'},${0.08 + r() * 0.2})`;
-      ctx.lineWidth = 0.5 + r() * 1.4;
-      const y = r() * s, a = (r() - 0.5) * 10;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(s / 3, y + a, (2 * s) / 3, y - a, s, y); ctx.stroke();
+    ctx.filter = 'none';
+    for (let i = 0; i < 250; i++) { // fine pores / growth lines
+      const dark = r() < 0.55;
+      ctx.strokeStyle = relief ? `rgba(${dark ? '20,20,20' : '200,200,200'},${0.1 + r() * 0.2})` : `rgba(${dark ? '34,12,6' : '110,55,32'},${0.04 + r() * 0.08})`;
+      ctx.lineWidth = 0.6 + r() * 1.6;
+      wavy(r() * s, 2 + r() * 6, 1 + Math.floor(r() * 2), r() * 7);
     }
-  });
-  t.repeat.set(1, 4);
+  }, { srgb: !relief });
+  t.repeat.set(0.8, 2.5);
   return t;
 }
 
@@ -174,21 +196,21 @@ const tex = {
 [tex.lvp, tex.lvpRough, tex.lvpBump] = lvpMaps();
 [tex.carpet, tex.carpetBump] = carpetMaps();
 tex.carpet.repeat.setScalar(1 / (FINISHES.carpetTile * 0.0254)); tex.carpetBump.repeat.setScalar(2.5); // bump is shared with upholstery fabrics
-tex.orangePeel.repeat.setScalar(1 / (FINISHES.wallTextureTile * 0.0254)); tex.stucco.repeat.set(2, 2); tex.quartz.repeat.set(1.2, 1.2);
+tex.knockdown = knockdownMap(); tex.knockdown.repeat.copy(tex.orangePeel.repeat.setScalar(1 / (FINISHES.wallTextureTile * 0.0254))); tex.stucco.repeat.set(2, 2); tex.quartz.repeat.set(1.2, 1.2);
 
 const std = (o) => new THREE.MeshStandardMaterial(o);
 const phys = (o) => new THREE.MeshPhysicalMaterial(o);
 
 export const MAT = {
   // architecture
-  wall: std({ color: 0xb9b2a4, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 0.5, name: 'wall-greige' }), // eggshell greige, IMG_3933/3935
-  wallAccent: std({ color: 0x8d8c88, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 0.5, name: 'wall-accent-gray' }),
-  ceiling: std({ color: 0xd9d5cb, roughness: 0.97, bumpMap: tex.orangePeel, bumpScale: 0.2, name: 'ceiling' }), // fine spray texture; photos read almost smooth (IMG_3932/3935)
-  trim: std({ color: 0xeeece6, roughness: 0.45, name: 'trim-white-semigloss' }),
+  wall: std({ color: 0xc2beb4, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 1.2, name: 'wall-greige' }), // eggshell greige, IMG_3933/3935
+  wallAccent: std({ color: 0x77746d, roughness: 0.9, bumpMap: tex.orangePeel, bumpScale: 1.2, name: 'wall-accent-gray' }),
+  ceiling: std({ color: 0xe2ddd0, roughness: 0.97, bumpMap: tex.orangePeel, bumpScale: 0.6, name: 'ceiling' }), // fine spray texture; photos read almost smooth (IMG_3932/3935)
+  trim: std({ color: 0xf4f2ec, roughness: 0.45, name: 'trim-white-semigloss' }),
   door: std({ color: 0xefede8, roughness: 0.4, name: 'door-white' }),
   entryDoor: std({ color: 0x8b877f, roughness: 0.5, name: 'entry-door-gray' }),
-  lvp: std({ map: tex.lvp, roughnessMap: tex.lvpRough, roughness: 1, bumpMap: tex.lvpBump, bumpScale: 0.35, metalness: 0, envMapIntensity: 1.6, name: 'lvp-espresso' }), // satin: roughness lives in the map (~0.45)
-  carpet: phys({ map: tex.carpet, bumpMap: tex.carpetBump, bumpScale: 1.4, roughness: 1, sheen: 0.5, sheenRoughness: 0.85, sheenColor: 0x6e6257, name: 'carpet-greige' }), // sheen = fuzzy cut-pile rim light
+  lvp: std({ map: tex.lvp, roughnessMap: tex.lvpRough, roughness: 1, bumpMap: tex.lvpBump, bumpScale: 0.15, metalness: 0, envMapIntensity: 0.7, name: 'lvp-espresso' }), // satin: roughness lives in the map (~0.3); sheen comes from the sun specular, not the sky env
+  carpet: phys({ map: tex.carpet, bumpMap: tex.carpetBump, bumpScale: 3, roughness: 1, sheen: 0.25, sheenRoughness: 0.85, sheenColor: 0x6e6257, name: 'carpet-greige' }), // sheen = fuzzy cut-pile rim light
   deckFloor: std({ color: 0x6d7379, roughness: 0.5, name: 'deck-gray-paint' }),
   deckRail: std({ color: 0x4d555b, roughness: 0.7, name: 'deck-rail-charcoal' }),
   stuccoExt: std({ color: 0xcfc9b8, roughness: 1, bumpMap: tex.stucco, bumpScale: 1.1, name: 'stucco-exterior' }),
@@ -202,8 +224,8 @@ export const MAT = {
   blackGlass: phys({ color: 0x0a0a0c, roughness: 0.08, metalness: 0, clearcoat: 1, name: 'black-glass' }),
   blackPlastic: std({ color: 0x151515, roughness: 0.55, name: 'black-plastic' }),
   whitePlastic: std({ color: 0xf2f1ee, roughness: 0.5, name: 'white-plastic' }),
-  porcelain: phys({ color: 0xf6f5f1, roughness: 0.12, clearcoat: 0.6, name: 'porcelain' }),
-  fiberglass: phys({ color: 0xf4f3ee, roughness: 0.22, clearcoat: 0.4, name: 'tub-fiberglass' }),
+  porcelain: phys({ color: 0xfbfaf6, roughness: 0.12, clearcoat: 0.8, clearcoatRoughness: 0.08, envMapIntensity: 1.6, name: 'porcelain' }),
+  fiberglass: phys({ color: 0xfbfaf5, roughness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.1, envMapIntensity: 1.6, name: 'tub-fiberglass' }), // warm-white gelcoat
   mirror: std({ color: 0xffffff, metalness: 1, roughness: 0.02, name: 'mirror' }),
   glass: phys({ color: 0xffffff, roughness: 0.02, transmission: 1, thickness: 0.01, ior: 1.5, transparent: true, opacity: 0.25, name: 'glass' }),
   vinylFrame: std({ color: 0xf2f1ec, roughness: 0.5, name: 'vinyl-frame-white' }),
@@ -230,8 +252,8 @@ export const MAT = {
   applianceSteel: std({ color: 0xb6b8ba, metalness: 0.85, roughness: 0.5, roughnessMap: tex.brushed, envMapIntensity: 1.5, name: 'appliance-stainless' }), // IBL is dim (0.35) so boost reflections to read as bright steel
   sinkSteel: std({ color: 0xd4d6d8, metalness: 0.9, roughness: 0.4, roughnessMap: tex.brushed, envMapIntensity: 4, name: 'sink-stainless-brushed' }),
   // mandir: cherry with grain along U (mandir.js maps U along each board's length), darkened antique brass, silk runner base
-  cherryGrain: std({ map: cherryMap(), roughness: 0.5, name: 'cherry-grain' }),
-  antiqueBrass: std({ color: 0x77582a, metalness: 1, roughness: 0.52, name: 'antique-brass' }),
+  cherryGrain: (() => { const relief = cherryMap(true); return std({ map: cherryMap(), roughness: 0.62, roughnessMap: relief, bumpMap: relief, bumpScale: 0.35, envMapIntensity: 0.8, name: 'cherry-grain' }); })(), // roughnessMap G ~0.5 -> effective ~0.55-0.6 with pores rougher
+  antiqueBrass: std({ color: 0x77582a, metalness: 1, roughness: 0.52, name: 'antique-brass' }), // mandir.js clones it with a crevice roughness map for the pulls
   // hand-polished puja brass: blotchy roughness + faint tarnish so highlights break up (UVs 0..1 on lathed articles)
   brassPatina: std({ color: 0xc9a24a, metalness: 1, roughness: 1, name: 'brass-patina',
     roughnessMap: canvasTex(256, (ctx, s) => { noise(ctx, s, [70, 70, 70], 50, 41); const r = rng(42); for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '150,150,150' : '40,40,40'},${0.1 + r() * 0.2})`; ctx.beginPath(); ctx.ellipse(r() * s, r() * s, 6 + r() * 40, 4 + r() * 18, r() * 3, 0, 7); ctx.fill(); } }, { repeat: [2, 2], srgb: false }),
@@ -268,9 +290,6 @@ export const MAT = {
   // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
   futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
     emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
-  // futon: mirror-chrome legs sit in the sofa's shadow with a dim IBL -> boosted reflections + faint baked bright/dark banding so they still read as chrome
-  futonChrome: std({ color: 0xe8ecef, metalness: 1, roughness: 0.15, envMapIntensity: 2.2, emissive: 0xffffff, emissiveIntensity: 0.22,
-    emissiveMap: canvasTex(128, (ctx, s) => { const g = ctx.createLinearGradient(0, 0, s, 0); [[0, 0.1], [0.12, 0.9], [0.2, 0.15], [0.42, 0.05], [0.55, 0.7], [0.62, 1], [0.7, 0.2], [0.9, 0.02], [1, 0.1]].forEach(([t, v]) => g.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); }), name: 'futon-chrome' }),
   // closets (fix round 1): opaque enamelled-steel wire bracket, lifted shelf white (closet interiors get almost no bounce light), knob chrome that stays bright
   // in the dim IBL, smoky dryer / dark washer door glass, drum interiors (self-lit a little: the cavity is fully shadowed)
   whiteEnamel: std({ color: 0xf4f3ef, roughness: 0.35, metalness: 0, name: 'white-enamel-steel' }),
@@ -286,5 +305,13 @@ export const MAT = {
   kitchenChrome: std({ color: 0xffffff, metalness: 1, roughness: 0.06, envMapIntensity: 2.5, name: 'kitchen-faucet-chrome' }), // MAT.chrome reads satin gray under the dim IBL
   cabinetRevealFill: std({ color: 0x7d7b77, roughness: 1, name: 'cabinet-reveal-soft-shadow' }), // mid-gray: a near-black 0.15" line aliases into dashes at room distance (no MSAA behind the composer)
   burnerLine: std({ color: 0x555555, roughness: 0.4, name: 'cooktop-burner-line' }),
+  // shell (fix round 1): heavier knock-down texture for hall/bath/kitchen walls + kitchen/hall ceilings, flat poche for cut wall tops in plan/dollhouse
+  wallKnockdown: std({ color: 0xc2beb4, roughness: 0.92, bumpMap: tex.knockdown, bumpScale: 0.7, name: 'wall-greige-knockdown' }),
+  ceilingKnockdown: std({ color: 0xe2ddd0, roughness: 0.97, bumpMap: tex.knockdown, bumpScale: 0.8, name: 'ceiling-knockdown' }),
+  hvacCream: std({ color: 0xddd6c0, roughness: 0.5, name: 'minisplit-cream' }), // finishes: aged ivory Daikin head, IMG_3939
+  poche: new THREE.MeshBasicMaterial({ color: 0x2b2b2b, name: 'wall-cut-poche' }),
+  // bathroom (fix round 1): the bath is lit by one dim dome, so plain chrome reads black — brighter reflections; satin bar pulls / towel hardware
+  bathChrome: std({ color: 0xffffff, metalness: 1, roughness: 0.12, envMapIntensity: 3, name: 'bath-chrome' }),
+  bathSatin: std({ color: 0xd8d6d0, metalness: 1, roughness: 0.3, envMapIntensity: 2.2, name: 'bath-satin-nickel' }),
 };
 export const TEX = tex;

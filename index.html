@@ -6,26 +6,71 @@
   <link rel="icon" href="data:," />
   <title>Spruce Apartment 3D</title>
   <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.4 system-ui, sans-serif; color: #eee; }
+    :root { --panel: #1e1f22e6; --line: #5a5c61; --ink: #eee; --accent: #e9e4d8; --focus: #ffb020; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.45 system-ui, sans-serif; color: var(--ink); }
     #app { position: fixed; inset: 0; }
-    #ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; }
-    #ui button { background: #1e1f22cc; color: #eee; border: 1px solid #555; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-    #ui button[aria-pressed="true"] { background: #e9e4d8; color: #111; }
-    #help { position: fixed; bottom: 12px; left: 12px; background: #1e1f22cc; padding: 8px 10px; border-radius: 6px; max-width: 520px; z-index: 5; }
+    #app canvas { display: block; touch-action: none; }
+    #ui { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; pointer-events: none; }
+    #ui > * { pointer-events: auto; }
+    #ui .sep { width: 1px; background: var(--line); margin: 4px 2px; }
+    button { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: .45; cursor: default; }
+    button[aria-pressed="true"], button[aria-expanded="true"] { background: var(--accent); color: #111; }
+    button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    kbd { font: 11px ui-monospace, monospace; background: #ffffff1f; border: 1px solid #ffffff33; border-radius: 3px; padding: 0 4px; }
+    #hint { position: fixed; bottom: 12px; left: 12px; background: var(--panel); padding: 6px 10px; border-radius: 6px; max-width: min(560px, 90vw); z-index: 5; }
+    #status { position: fixed; bottom: 12px; right: 12px; background: var(--panel); padding: 6px 10px; border-radius: 6px; z-index: 5; }
+    #status:empty { display: none; }
+    #help { position: fixed; top: 52px; left: 12px; width: min(340px, 90vw); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; z-index: 6; }
+    #help h2 { font-size: 13px; margin: 8px 0 2px; color: var(--accent); }
+    #help h2:first-child { margin-top: 0; }
+    #help dl { display: grid; grid-template-columns: 92px 1fr; gap: 2px 10px; margin: 0; }
+    #help dt { white-space: nowrap; } #help dd { margin: 0; opacity: .85; }
     .dim { color: #111; background: #ffffffd9; padding: 1px 5px; border-radius: 3px; font-size: 12px; white-space: nowrap; }
-    body.shot #ui, body.shot #help { display: none; }
+    .dim.total { font-weight: 600; font-size: 13px; }
+    #dimlines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+    #dimlines path { stroke: #0b3d91; stroke-width: 1.4; fill: none; }
+    #dimlines text { font: 600 12px system-ui, sans-serif; fill: #0b3d91; text-anchor: middle; paint-order: stroke; stroke: #fffffff0; stroke-width: 4px; stroke-linejoin: round; }
+    body.shot #ui, body.shot #hint, body.shot #status, body.shot #help, body.locked #hint { display: none; }
   </style>
 </head>
 <body>
   <div id="app"></div>
-  <div id="ui" role="toolbar" aria-label="View controls">
-    <button data-mode="dollhouse">Dollhouse</button>
-    <button data-mode="walk">Walk</button>
-    <button data-mode="plan">Plan</button>
-    <button id="dims" aria-pressed="false">Dimensions</button>
-    <button id="reset">Reset furniture</button>
+  <div id="ui" role="toolbar" aria-label="View controls" aria-orientation="horizontal">
+    <button data-mode="dollhouse" aria-pressed="false" aria-keyshortcuts="1" title="Dollhouse orbit (1)">Dollhouse</button>
+    <button data-mode="walk" aria-pressed="false" aria-keyshortcuts="2" title="First-person walk (2)">Walk</button>
+    <button data-mode="plan" aria-pressed="false" aria-keyshortcuts="3" title="Plan view (3)">Plan</button>
+    <span class="sep" role="separator"></span>
+    <button id="dims" aria-pressed="false" aria-keyshortcuts="M" title="Plan dimensions (M)">Dimensions</button>
+    <button id="rotate" aria-keyshortcuts="R" title="Rotate selected furniture 90° (R)" disabled>Rotate</button>
+    <button id="reset" title="Put all furniture back">Reset furniture</button>
+    <button id="helpBtn" aria-expanded="false" aria-controls="help" aria-keyshortcuts="H" title="Help (H)">Help</button>
   </div>
-  <div id="help"></div>
+  <section id="help" aria-label="Help" hidden>
+    <h2>Views</h2>
+    <dl>
+      <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Dollhouse · Walk · Plan</dd>
+      <dt><kbd>M</kbd></dt><dd>Plan dimensions + area check</dd>
+      <dt><kbd>H</kbd> / <kbd>Esc</kbd></dt><dd>Open / close this panel</dd>
+    </dl>
+    <h2>Walk (eye height 5'7")</h2>
+    <dl>
+      <dt>Click</dt><dd>Mouse-look (Esc releases)</dd>
+      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Walk / strafe; walls and furniture stop you</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd> / <kbd>Q</kbd> <kbd>E</kbd></dt><dd>Turn without the mouse</dd>
+    </dl>
+    <h2>Furniture (Dollhouse / Plan)</h2>
+    <dl>
+      <dt>Drag</dt><dd>Move on the floor; slides along walls</dd>
+      <dt>Click</dt><dd>Select · coffee table lifts its top</dd>
+      <dt><kbd>N</kbd></dt><dd>Select next piece</dd>
+      <dt>Arrows</dt><dd>Nudge 1" (<kbd>Shift</kbd> 6")</dd>
+      <dt><kbd>R</kbd></dt><dd>Rotate 90°</dd>
+    </dl>
+  </section>
+  <div id="hint"></div>
+  <div id="status" role="status" aria-live="polite"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

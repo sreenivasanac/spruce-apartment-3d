@@ -165,31 +165,38 @@ function chime() {
 
 // ---------------------------------------------------------------- bedroom mini-split head (FIXTURES.miniSplit, IMG_3935 / 3939)
 function miniSplit() {
-  const S = FIXTURES.miniSplit, D = F.miniSplit, { w, h, d } = S, g = group('miniSplit');
-  // side profile: flat back on the wall, flat top, near-vertical front panel, bottom sweeping back to the wall
+  const S = FIXTURES.miniSplit, D = F.miniSplit, { w, h, d } = S, g = group('miniSplit'), I = MAT.hvacCream;
+  const [o0, o1] = D.outlet.map((f) => f * h), [p0, p1] = D.panel.map((f) => f * h), rd = d - D.recess;
+  // side profile (out, up): flat back + top, boxy front with a recessed upper panel under a raised top lip, short sweep under the outlet
   const s = new THREE.Shape();
-  s.moveTo(0, 0); s.lineTo(m(d * 0.45), 0); s.quadraticCurveTo(m(d * 0.95), m(h * 0.02), m(d), m(h * 0.38));
-  s.lineTo(m(d), m(h * 0.9)); s.quadraticCurveTo(m(d), m(h), m(d * 0.88), m(h)); s.lineTo(0, m(h));
+  s.moveTo(0, 0); s.lineTo(m(d * D.sweepFrac), 0); s.quadraticCurveTo(m(d), 0, m(d), m(h * D.sweepH));
+  for (const [x, y] of [[d, p0], [rd, p0 + D.recess], [rd, p1 - D.recess], [d, p1], [d, h - D.endR]]) s.lineTo(m(x), m(y));
+  s.quadraticCurveTo(m(d), m(h), m(d - D.endR), m(h)); s.lineTo(0, m(h));
   const e = m(D.endR);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: m(w) - 2 * e, bevelEnabled: true, bevelThickness: e, bevelSize: e, bevelOffset: -e, bevelSegments: 4, curveSegments: 16 });
+  const geo = new THREE.ExtrudeGeometry(s, { depth: m(w) - 2 * e, bevelEnabled: true, bevelThickness: e, bevelSize: e, bevelOffset: -e, bevelSegments: 3, curveSegments: 12 });
   geo.translate(0, 0, -m(w) / 2 + e);
-  const body = new THREE.Mesh(geo, MAT.whitePlastic);
+  const body = new THREE.Mesh(geo, I);
   body.name = 'miniSplit:body'; body.castShadow = body.receiveShadow = true;
   g.add(body);
-  g.add(lbox(0.1, D.grooveH, w * 0.94, MAT.hvacShadow, d, h * D.grooveFrac, 0, 'miniSplit:panel-gap')); // front-panel parting line
-  g.add(lbox(0.1, D.grooveH, w * D.louverFrac, MAT.blackPlastic, d * 0.965, h * 0.26, 0, 'miniSplit:outlet-slot')); // discharge opening above the flap
-  const flap = lbox(D.louverD, D.louverT, w * D.louverFrac, MAT.whitePlastic, d * 0.8375 + 0.1, h * 0.105 - 0.1, 0, 'miniSplit:louver'); // on the bottom sweep (curve midpoint)
-  flap.rotation.z = Math.atan2(h * 0.38, d * 0.55);
-  g.add(flap);
-  g.add(lbox(0.06, D.display.h, D.display.w, MAT.blackPlastic, d, h * 0.47, -w * 0.34, 'miniSplit:display'));
-  g.add(lbox(0.05, D.badge.h, D.badge.w, MAT.nickel, d, h * 0.78, w * 0.36, 'miniSplit:badge'));
+  for (const sg of [-1, 1]) g.add(lbox(D.recess, p1 - p0, D.endCapW, I, rd + D.recess / 2, (p0 + p1) / 2, sg * (w / 2 - D.endR - D.endCapW / 2), 'miniSplit:end-cap')); // the recess stops short of the moulded ends
+  const lw = w * D.louverFrac, vh = (o1 - o0 - 3 * D.vaneGap) / 2;
+  g.add(lbox(0.06, o1 - o0, lw, MAT.blackPlastic, d, (o0 + o1) / 2, 0, 'miniSplit:outlet-slot'));
+  for (const k of [0, 1]) { // double horizontal vane, closed
+    const v = lbox(D.vaneT, vh, lw - 0.3, I, d + 0.03 + D.vaneT / 2, o0 + D.vaneGap + vh / 2 + k * (vh + D.vaneGap), 0, k ? 'miniSplit:louver-upper' : 'miniSplit:louver');
+    v.rotation.z = -0.12; g.add(v);
+  }
+  const endZ = (w / 2 + lw / 2) / 2; // centre of the solid zone beside the outlet; viewer's right = local -Z on this wall
+  g.add(lbox(0.05, D.ir.h, D.ir.w, MAT.blackPlastic, d, (o0 + o1) / 2, -endZ, 'miniSplit:ir-window'));
+  g.add(lbox(0.04, D.display.h, D.display.w, MAT.hvacShadow, rd, p0 + 0.9, w * 0.29, 'miniSplit:display'));
+  g.add(lbox(0.04, D.badge.h, D.badge.w, MAT.hvacShadow, rd, p0 + 0.9, -w * 0.08, 'miniSplit:badge'));
+  for (let i = 0; i < D.intake.n; i++) g.add(lbox(D.intake.w, 0.04, lw, MAT.blackPlastic, D.intake.x0 + i * D.intake.pitch, h, 0, 'miniSplit:intake')); // top return-air slots
   const face = X.bedLivA, n = [-1, 0]; // bedroom face of the bed|living wall
   onWall(g, face, S.cy, S.elevTop - h, n);
-  // remote-control cradle on the wall below the head
-  const R = D.remote, rc = group('miniSplit:remote');
-  rc.add(new THREE.Mesh(roundedPlate(R.w, R.h, R.d, 0.3, 0.1), MAT.whitePlastic));
-  rc.add(lbox(0.03, R.lcd[1], R.lcd[0], MAT.hvacShadow, R.d, R.h * 0.22, 0));
-  return group('finishes:hvac', g, onWall(rc, face, R.cy, R.elev, n));
+  // white wall plate (wired controller) below the head, right edge flush with the head's window-side end
+  const P = D.plate, pl = group('miniSplit:remote');
+  pl.add(new THREE.Mesh(roundedPlate(P.w, P.h, P.d, 0.2, 0.08), MAT.whitePlastic));
+  pl.add(lbox(0.03, P.lcd[1], P.lcd[0], MAT.hvacShadow, P.d, P.h * 0.2, 0));
+  return group('finishes:hvac', g, onWall(pl, face, S.cy + w / 2 - P.w / 2, S.elevTop - h - P.drop - P.h / 2, n));
 }
 
 export function build() {

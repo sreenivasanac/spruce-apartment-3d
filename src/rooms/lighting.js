@@ -11,13 +11,32 @@ import { MAT, rng } from '../materials.js';
 import { box, cyl, group } from '../lib/build.js';
 
 /** Viewer wiring: tone-mapping exposure + IBL strength that the light intensities below were tuned for. */
-export const RENDER = { exposure: 1.0, envIntensity: 0.3 };
+export const RENDER = { exposure: 0.9, envIntensity: 0.45 };
 
 // Tuning (not real-world sizes). Colours are camera-white-balanced, i.e. 2700-3000 K as the photos show it.
-const WARM = 0xffe2c2, LED_STRIP = 0xffc98e, SKY = 0xcfe0f5, SUN_COLOR = 0xffc995;
+const WARM = 0xffe2c2, LENS = 0xfff1dc, LED_STRIP = 0xffa85a, SKY = 0xe4ebf2, SUN_COLOR = 0xffe2c0;
+const LENS_GLOW = 8; // emissive strength that clips an opal lens to warm white after ACES, as every lit fixture photographs
 const P = (x, y, elev) => new THREE.Vector3(m(x), m(elev), m(y)); // plan inches -> world
 
-const lens = (k) => Object.assign(MAT.lensLit.clone(), { emissiveIntensity: MAT.lensLit.emissiveIntensity * k });
+const lens = (k) => Object.assign(MAT.lensLit.clone(), { emissive: new THREE.Color(LENS), emissiveIntensity: LENS_GLOW * k });
+
+/** Additive gradient "light card" (w x h inches, in its own XY plane facing +Z): the soft spill a lit lens leaves on the surface it is mounted to. */
+function glowCard(w, h, color, k, stops, radial = true) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d'), grad = radial ? ctx.createRadialGradient(64, 64, 0, 64, 64, 64) : ctx.createLinearGradient(0, 0, 0, 128);
+  stops.forEach(([at, v]) => grad.addColorStop(at, `rgb(${v},${v},${v})`));
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(color).multiplyScalar(k), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  return new THREE.Mesh(new THREE.PlaneGeometry(m(w), m(h)), mat);
+}
+const HALO = [[0, 255], [0.3, 150], [0.55, 52], [0.8, 12], [1, 0]]; // fixture hides the centre; ~0.6 m of falloff outside the rim
+/** Ceiling halo around a flush fixture of plan size l (along y) x w (along x). */
+function ceilingHalo(o, l, w, elev, k, name) {
+  const reach = 26, card = glowCard(w + reach * 2, l + reach * 2, WARM, k, HALO);
+  card.name = name; card.rotation.x = Math.PI / 2; card.position.copy(P(o.cx, o.cy, elev - 0.06));
+  return card;
+}
 
 /** Solid of revolution from an [r, elev] profile in inches (elev <= 0 hangs below the mounting plane). */
 function lathe(profile, mat, name) {
@@ -42,27 +61,28 @@ function pointLight(name, pos, intensity, distance, shadow) {
 }
 
 // ---------------------------------------------------------------- fixtures
-/** 32" oval flush (IMG_3946): brushed-nickel rim band, shallow opal lens, two nickel straps across the short axis. */
+/** 32" oval flush (IMG_3946): slim brushed-nickel rim, shallow opal lens, a thin nickel rail just inside the rim along each long side. */
 function kitchenOval() {
-  const o = F.kitchenOval, a = o.l / 2, b = o.w / 2, top = ENV.kitchenCeiling;
-  const lensProfile = [[0, -o.h], [b * 0.45, -o.h + 0.1], [b * 0.72, -o.h + 0.5], [b * 0.85, -o.h + 1], [b - 1.1, -o.rimH + 0.2]];
-  const lensY = (rho) => { // lens elevation at normalised radius rho (0 centre .. 1 rim)
-    const r = rho * b; let i = 1; while (i < lensProfile.length - 1 && lensProfile[i][0] < r) i++;
-    const [r0, y0] = lensProfile[i - 1], [r1, y1] = lensProfile[i];
-    return y0 + (y1 - y0) * THREE.MathUtils.clamp((r - r0) / (r1 - r0), 0, 1);
-  };
+  const o = F.kitchenOval, a = o.l / 2, b = o.w / 2, top = ENV.kitchenCeiling, R = o.rail;
+  const lensProfile = [[0, -o.h], [b * 0.45, -o.h + 0.2], [b * 0.7, -o.h + 0.75], [b * 0.8, -o.h + 1.2], [b - 1.1, -o.rimH + 0.2]];
+  const railY = lensProfile[3][1] - R.t * 0.3; // rails sit proud of the lens at r = R.at * b
   const oval = group('',
-    lathe([[b - 1.1, -o.rimH], [b - 0.15, -o.rimH], [b, -o.rimH + 0.15], [b, -0.15], [b - 0.15, 0]], MAT.nickel, 'lighting:kitchen-oval:rim'),
+    lathe([[b - 1.1, -o.rimH], [b - 0.15, -o.rimH - 0.12], [b, -o.rimH + 0.1], [b, -0.15], [b - 0.15, 0]], MAT.nickel, 'lighting:kitchen-oval:rim'),
     lathe(lensProfile, lens(1), 'lighting:kitchen-oval:lens'));
+  const arc = THREE.MathUtils.degToRad(R.arcDeg);
+  for (const side of [0, Math.PI]) { // circle space: +/-x become the long sides once the group is stretched along z
+    const rail = new THREE.Mesh(new THREE.TorusGeometry(m(b * R.at), m(R.t / 2), 8, 40, arc), MAT.nickel);
+    rail.name = 'lighting:kitchen-oval:rail'; rail.rotation.set(Math.PI / 2, 0, side - arc / 2); rail.position.y = m(railY); rail.scale.z = 0.6; // flat strap
+    oval.add(rail);
+    for (const e of [-1, 1]) { // end clips tying the rail back to the rim
+      const t = side + (e * arc) / 2, r = b * (R.at + 1) / 2 - 0.3;
+      const clip = box(b * (1 - R.at), R.t, R.clip * (b / a), MAT.nickel, 'lighting:kitchen-oval:clip');
+      clip.position.set(m(r * Math.cos(t)), m(railY + 0.1), m(-r * Math.sin(t))); clip.rotation.y = t;
+      oval.add(clip);
+    }
+  }
   oval.scale.z = a / b; // circle -> ellipse, long axis along plan y
   const g = group('lighting:kitchen-oval', oval);
-  for (const s of [-o.strapAt, o.strapAt]) {
-    const half = b * Math.sqrt(1 - (s / a) ** 2);
-    const pts = Array.from({ length: 9 }, (_, i) => { const x = -half + (half * 2 * i) / 8; return new THREE.Vector3(m(x), m(lensY(Math.hypot(x / b, s / a)) - 0.12), 0); });
-    const strap = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, m(0.14), 8), MAT.nickel);
-    strap.scale.z = o.strapW / 0.28; strap.position.z = m(s); strap.name = 'lighting:kitchen-oval:strap';
-    g.add(strap);
-  }
   g.position.copy(P(o.cx, o.cy, top));
   return g;
 }
@@ -87,7 +107,7 @@ function diningTrack() {
   const bar = box(o.l, o.bar, o.bar, MAT.nickel, 'lighting:dining-track:bar'); bar.position.copy(P(o.cx, o.cy, barElev - o.bar / 2));
   g.add(canopy, drop, bar);
   // aim points [plan x, plan y, elev]: two light the dining floor (toward the hall, as the glowing heads in the photo), two wash the entry (E) wall
-  const aims = [[122, 78, 0], [152, 72, 0], [182, 6, 40], [206, 6, 46]];
+  const aims = [[132, 72, 0], [150, 84, 0], [186, 6, 58], [217, 34, 30]]; // varied yaw: 1+2 face the hall (the two blown-out faces in the photo), 3 washes the E wall, 4 the stub wall
   const down = new THREE.Vector3(0, -1, 0);
   aims.forEach((aim, i) => {
     const x = o.cx - o.l / 2 + 3 + (i * (o.l - 6)) / (o.heads - 1);
@@ -96,14 +116,14 @@ function diningTrack() {
     const head = group(`lighting:dining-track:head-${i + 1}`);
     const can = cyl(o.headDia / 2, o.headL, MAT.nickel); can.position.y = -m(o.headL / 2 - 0.6);
     const back = new THREE.Mesh(new THREE.SphereGeometry(m(o.headDia / 2), 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.nickel); back.position.y = m(0.6); back.scale.y = 0.45;
-    const face = new THREE.Mesh(new THREE.CircleGeometry(m(o.headDia / 2 - 0.22), 24), lens(1.6)); face.rotation.x = Math.PI / 2; face.position.y = -m(o.headL - 0.6 - 0.25);
+    const face = new THREE.Mesh(new THREE.CircleGeometry(m(o.headDia / 2 - 0.22), 24), lens(1.8)); face.rotation.x = Math.PI / 2; face.position.y = -m(o.headL - 0.6 + 0.07); // just proud of the bezel, or its end cap hides the glow
     const bezel = cyl(o.headDia / 2 + 0.02, 0.3, MAT.nickel); bezel.position.y = -m(o.headL - 0.6 - 0.1); // hides the lens edge
     head.add(can, back, bezel, face);
     const dir = P(...aim).sub(pivot).normalize();
     head.quaternion.setFromUnitVectors(down, dir); head.position.copy(pivot);
     g.add(stem, head);
-    if (i % 2) return; // ponytail: 2 real spots (one floor, one wall wash) carry the look; all 4 lenses glow. Add the other 2 if GPU budget allows
-    const spot = new THREE.SpotLight(WARM, 6, 5.5, 0.75, 0.8, 2);
+    if (i === 3) return; // ponytail: 3 unshadowed spots carry the look (floor x2 + E-wall wash); all 4 lenses glow
+    const spot = new THREE.SpotLight(WARM, i === 2 ? 5 : 7, 5.5, 0.7, 0.9, 2);
     spot.name = `light:dining-track-${i + 1}`;
     spot.position.copy(pivot).addScaledVector(dir, m(o.headL));
     spot.target.position.copy(P(...aim));
@@ -128,36 +148,35 @@ function vanityBar() {
     const arm = box(o.standoff + r, 0.35, o.cage - 0.4, MAT.nickel); arm.position.copy(P(X.northInt + o.plateT + (o.standoff + r) / 2, y0, elev + r + 0.2)); g.add(arm);
     const arm2 = arm.clone(); arm2.position.y = m(elev - r - 0.2); g.add(arm2);
   }
+  const haloCard = glowCard(L + 30, 34, WARM, 0.22, HALO); // soft spill on the wall behind/above the bar
+  haloCard.name = 'lighting:vanity-bar:halo'; haloCard.rotation.y = Math.PI / 2; haloCard.position.copy(P(X.northInt + 0.06, cy, elev + 2));
+  g.add(haloCard);
   return g;
 }
 
 /**
- * Warm LED tape under the upper cabinets (IMG_3946): emissive strip + one short-range point light per run, plus an additive
- * gradient "light card" on the wall between backsplash and uppers — that gives the even linear wash of a real tape, which a
- * few point lights can't (hot spots) and RectAreaLights can't either (unoccluded: they mirrored the tape onto the dining floor).
+ * Warm LED tape under the upper cabinets (IMG_3946): emissive strip + additive gradient "light cards" on the wall and the
+ * quartz — the even linear wash of a real tape, which point lights can't give (scallops) and RectAreaLights can't either
+ * (unoccluded: they mirrored the tape onto the dining floor).
  */
 function underCabinet() {
-  const o = F.underCab, g = group('lighting:undercab'), lights = group('lighting:undercab:lights');
-  const c = document.createElement('canvas'); c.width = 4; c.height = 64;
-  const ctx = c.getContext('2d'), grad = ctx.createLinearGradient(0, 0, 0, 64);
-  grad.addColorStop(0, '#fff'); grad.addColorStop(0.35, '#777'); grad.addColorStop(1, '#000');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, 4, 64);
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  const washMat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(LED_STRIP).multiplyScalar(0.55), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
-  const washBottom = KITCHEN.counterH + KITCHEN.backsplashH + 0.75, washH = KITCHEN.upperBottom - washBottom;
+  const o = F.underCab, g = group('lighting:undercab');
+  const RAMP = [[0, 255], [0.18, 190], [0.5, 90], [1, 14]]; // brightest right under the tape
+  const washBottom = KITCHEN.counterH, washH = KITCHEN.upperBottom - washBottom; // floats just proud of the 4" splash so that glows too
+  const splashT = 0.8, poolD = KITCHEN.upperD + 4; // tuning: card stand-off past the backsplash, reach of the pool on the quartz
   for (const run of o.runs) {
     const len = run.b - run.a, mid = (run.a + run.b) / 2, east = run.wall === 'E';
     const at = (off) => (east ? [mid, Y.eastInt + off] : [X.southInt - off, mid]);
     const strip = east ? box(len, o.t, o.w, lens(1.5)) : box(o.w, o.t, len, lens(1.5));
     strip.name = `lighting:undercab:${run.id}`; strip.position.copy(P(...at(o.inset), o.elev + o.t / 2));
-    const wash = new THREE.Mesh(new THREE.PlaneGeometry(m(len), m(washH)), washMat);
-    wash.name = `lighting:undercab:${run.id}:wash`; wash.position.copy(P(...at(0.08), washBottom + washH / 2)); wash.rotation.y = east ? 0 : -Math.PI / 2;
-    g.add(strip, wash);
-    const l = new THREE.PointLight(LED_STRIP, 0.9, 1.8, 2);
-    l.name = `light:undercab:${run.id}`; l.position.copy(P(...at(o.inset + 3), o.elev - 3));
-    lights.add(l);
+    const wash = glowCard(len, washH, LED_STRIP, 1.5, RAMP, false);
+    wash.name = `lighting:undercab:${run.id}:wash`; wash.position.copy(P(...at(splashT), washBottom + washH / 2)); wash.rotation.y = east ? 0 : -Math.PI / 2;
+    const pool = glowCard(len, poolD, LED_STRIP, 0.7, RAMP, false); // same ramp lying on the counter, bright edge at the wall
+    pool.name = `lighting:undercab:${run.id}:pool`; pool.rotation.set(-Math.PI / 2, 0, east ? 0 : Math.PI / 2);
+    pool.position.copy(P(...at(splashT + poolD / 2), KITCHEN.counterH + 0.06));
+    g.add(strip, wash, pool);
   }
-  return { fixture: g, lights };
+  return g; // no real lights: point lights this close to the wall scallop it; the cards carry the look
 }
 
 // ---------------------------------------------------------------- daylight
@@ -169,24 +188,44 @@ function sunDir() {
 
 /**
  * Invisible shadow-only "foliage" between the sun and the bedroom window: the redwoods break that window's sun into the
- * dappled patches seen in IMG_3935/3937/3941, while the slider's sun stays clean (crisp rail stripes, IMG_3933).
- * colorWrite/depthWrite off => never drawn, but the shadow pass (own depth material) still renders it.
+ * soft dapple seen in IMG_3935/3937/3941, while the slider's sun stays clean (crisp rail stripes, IMG_3933).
+ * One quad with a blurred leaf-gap canvas; the blur is noise-dithered to 1 bit so alphaTest + PCF average it back into a
+ * soft penumbra (a shadow map has no partial occlusion). colorWrite/depthWrite off => never drawn, only in the shadow pass.
  */
 function foliageGobo(dir) {
-  const N = 380, dist = 12, spanU = 3.4, spanV = 2.6; // metres; spans cover the window + margin, no overlap with the slider's rays
-  const mat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide });
-  const mesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 12), mat, N);
-  mesh.name = 'lighting:foliage-gobo'; mesh.castShadow = true; mesh.frustumCulled = false;
-  const c = P((BED_WINDOW.a + BED_WINDOW.b) / 2, Y.westInt, (BED_WINDOW.sill + BED_WINDOW.head) / 2).addScaledVector(dir, dist);
-  const u = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize(), v = new THREE.Vector3().crossVectors(u, dir);
-  const r = rng(42), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir), M = new THREE.Matrix4();
-  const clumps = Array.from({ length: 24 }, () => [(r() - 0.5) * spanU, (r() - 0.5) * spanV]); // boughs, with clear sun between them
-  for (let i = 0; i < N; i++) {
-    const [cu, cv] = clumps[i % clumps.length], spread = () => (r() + r() + r() - 1.5) * 0.4;
-    const pos = c.clone().addScaledVector(u, cu + spread()).addScaledVector(v, cv + spread()).addScaledVector(dir, (r() - 0.5) * 2);
-    const roll = new THREE.Quaternion().setFromAxisAngle(dir, r() * Math.PI);
-    mesh.setMatrixAt(i, M.compose(pos, roll.multiply(q), new THREE.Vector3(0.07 + r() * 0.1, 0.04 + r() * 0.05, 1)));
+  const dist = 12, spanU = 3.6, spanV = 2.8, W = 288, H = 224, K = 6; // metres / px; sun rays are parallel, so window + margin covers every ray that enters
+  const r = rng(42), small = document.createElement('canvas'); small.width = W; small.height = H;
+  const ctx = small.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); // white = blocked
+  ctx.filter = 'blur(3px)'; // ponytail: browsers without canvas filter (Safari) get harder-edged dapple
+  ctx.fillStyle = '#000';
+  for (let i = 0; i < 30; i++) { // openings between boughs: clusters of big soft gaps (10-35 cm) ...
+    const cx = r() * W, cy = r() * H, n = 2 + Math.floor(r() * 4);
+    for (let j = 0; j < n; j++) {
+      ctx.beginPath(); ctx.ellipse(cx + (r() - 0.5) * 60, cy + (r() - 0.5) * 44, 8 + r() * 20, 5 + r() * 12, r() * Math.PI, 0, Math.PI * 2); ctx.fill();
+    }
   }
+  ctx.fillStyle = '#fff'; ctx.filter = 'blur(2px)';
+  for (let i = 0; i < 260; i++) { // ... broken up again by twigs and leaves
+    ctx.globalAlpha = 0.5 + r() * 0.5;
+    ctx.beginPath(); ctx.ellipse(r() * W, r() * H, 2 + r() * 6, 1 + r() * 2.5, r() * Math.PI, 0, Math.PI * 2); ctx.fill();
+  }
+  const src = ctx.getImageData(0, 0, W, H).data, big = document.createElement('canvas'); big.width = W * K; big.height = H * K;
+  const bctx = big.getContext('2d'), out = bctx.createImageData(W * K, H * K), d = out.data;
+  for (let y = 0; y < H * K; y++) for (let x = 0; x < W * K; x++) {
+    // bilinear sample of the blurred map, then 1-bit noise dither
+    const fx = Math.min(x / K, W - 1.001), fy = Math.min(y / K, H - 1.001), x0 = fx | 0, y0 = fy | 0, tx = fx - x0, ty = fy - y0;
+    const s = (xx, yy) => src[(yy * W + xx) * 4];
+    const v = (s(x0, y0) * (1 - tx) + s(x0 + 1, y0) * tx) * (1 - ty) + (s(x0, y0 + 1) * (1 - tx) + s(x0 + 1, y0 + 1) * tx) * ty;
+    const k = (y * W * K + x) * 4; d[k] = d[k + 1] = d[k + 2] = v > r() * 255 ? 255 : 0; d[k + 3] = 255;
+  }
+  bctx.putImageData(out, 0, 0);
+  const tex = new THREE.CanvasTexture(big); tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  const mat = new THREE.MeshBasicMaterial({ alphaMap: tex, alphaTest: 0.5, colorWrite: false, depthWrite: false, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(spanU, spanV), mat);
+  mesh.name = 'lighting:foliage-gobo'; mesh.castShadow = true; mesh.frustumCulled = false;
+  mesh.position.copy(P((BED_WINDOW.a + BED_WINDOW.b) / 2, Y.westInt, (BED_WINDOW.sill + BED_WINDOW.head) / 2).addScaledVector(dir, dist));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
   return mesh;
 }
 
@@ -203,12 +242,12 @@ export function build({ scene, renderer }) {
   const lights = group('lighting:lights'); // never hidden: the dollhouse view keeps the interior lit
   g.add(lights);
 
-  // soft bounce: warm-grey from the ceiling/walls, dark espresso from the floor
-  lights.add(new THREE.HemisphereLight(0xe6e2da, 0x3a2f2a, 0.3));
+  // soft bounce. Ground colour is what the CEILING receives: keep it a warm mid-tone or ceilings go blue-grey next to the walls
+  lights.add(new THREE.HemisphereLight(0xf0e9dc, 0x77695c, 0.42));
 
   // Sun: WSW, 13 deg up. Frustum is fitted to the unit so the 5.5" rail slats resolve to crisp stripes on the LVP.
   const dir = sunDir(), c = P(ENV.w / 2, ENV.d / 2, 0);
-  const sun = new THREE.DirectionalLight(SUN_COLOR, 7);
+  const sun = new THREE.DirectionalLight(SUN_COLOR, 4.5);
   sun.name = 'sun';
   sun.position.copy(c).addScaledVector(dir, 25);
   sun.target.position.copy(c);
@@ -217,7 +256,6 @@ export function build({ scene, renderer }) {
   Object.assign(sun.shadow.camera, { left: -6.5, right: 6.5, top: 5, bottom: -5, near: 5, far: 40 });
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.015;
-  sun.shadow.radius = 2.5;
   lights.add(sun, sun.target, foliageGobo(dir));
 
   // Shadow-only roof: the ceiling is a zero-thickness plane almost parallel to the 13-degree sun, so shadow bias let a
@@ -228,6 +266,14 @@ export function build({ scene, renderer }) {
   roof.receiveShadow = false;
   roof.userData.hideInDollhouse = true; // no ceiling there, and it must stay out of the AO depth pre-pass
   g.add(roof);
+  // Same idea for the vertical joints of the sun-facing wall: walls butt (no overlap), so the inside corners showed a hairline
+  // of sun. Shadow-only posts buried INSIDE the west wall (invisible to the AO pre-pass) put a caster well ahead of each joint.
+  const postMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, shadowSide: THREE.DoubleSide });
+  for (const [x0, x1] of [[0, 16], [X.bedLivA - 10, X.bedLivB + 10], [ENV.w - 16, ENV.w]]) {
+    const post = box(x1 - x0, ENV.ceiling + 1, ENV.extWall - 1, postMat, 'lighting:shadow-corner');
+    post.position.copy(P((x0 + x1) / 2, Y.westInt + ENV.extWall / 2, ENV.ceiling / 2)); post.receiveShadow = false;
+    g.add(post);
+  }
 
   // Sky fill: the glazing acts as a cool area light (gives the falloff away from the windows that a flat ambient can't).
   const sky = (a, b, sill, head, k) => {
@@ -236,24 +282,32 @@ export function build({ scene, renderer }) {
     l.lookAt(P((a + b) / 2, 0, (sill + head) / 2));
     return l;
   };
-  const skySlider = sky(SLIDER.a, SLIDER.b, 0, SLIDER.h, 3); skySlider.name = 'light:sky-slider';
-  const skyWindow = sky(BED_WINDOW.a, BED_WINDOW.b, BED_WINDOW.sill, BED_WINDOW.head, 3.5); skyWindow.name = 'light:sky-bed-window';
+  const skySlider = sky(SLIDER.a, SLIDER.b, 24, SLIDER.h, 1.6); // lower edge lifted: a full-height panel mirrored in the satin LVP as a white sheet skySlider.name = 'light:sky-slider';
+  const skyWindow = sky(BED_WINDOW.a, BED_WINDOW.b, BED_WINDOW.sill, BED_WINDOW.head, 2.1); skyWindow.name = 'light:sky-bed-window';
   lights.add(skySlider, skyWindow);
 
   // fixtures (ceiling-mounted ones disappear with the ceiling in dollhouse/plan views)
-  const track = diningTrack(), under = underCabinet();
+  const track = diningTrack();
   const ceilingMounted = [kitchenOval(), track.fixture, flushDome(F.hallFlush, 'lighting:hall-flush'), flushDome(F.entryFlush, 'lighting:entry-flush'), flushDome(F.bathFlush, 'lighting:bath-flush')];
+  const dome = (o, name, k = 0.3) => ceilingHalo(o, o.dia, o.dia, ENV.ceiling, k, `${name}:halo`);
+  ceilingMounted.push(ceilingHalo(F.kitchenOval, F.kitchenOval.l, F.kitchenOval.w, ENV.kitchenCeiling, 0.4, 'lighting:kitchen-oval:halo'),
+    dome(F.hallFlush, 'lighting:hall-flush'), dome(F.entryFlush, 'lighting:entry-flush'), dome(F.bathFlush, 'lighting:bath-flush', 0.22));
   ceilingMounted.forEach((f) => { f.userData.hideInDollhouse = true; });
-  g.add(...ceilingMounted.map(noShadow), noShadow(vanityBar()), noShadow(under.fixture));
-  lights.add(track.lights, under.lights);
+  g.add(...ceilingMounted.map(noShadow), noShadow(vanityBar()), noShadow(underCabinet()));
+  lights.add(track.lights);
 
   const below = (o, elev, gap) => P(o.cx, o.cy, elev - o.h - gap); // just under the lens so the ceiling around it still catches light
-  const kitchen = pointLight('light:kitchen-oval', below(F.kitchenOval, ENV.kitchenCeiling, 2), 3.2, 7, true);
+  const kitchen = pointLight('light:kitchen-oval', below(F.kitchenOval, ENV.kitchenCeiling, 3), 3.5, 7, true);
   const hall = pointLight('light:hall-flush', below(F.hallFlush, ENV.ceiling, 2), 1.3, 5, true);
+  // Unshadowed down-light from the oval: the soft pool on the kitchen floor. (Lowering the shadowed point light instead
+  // drew hard wall-top shadow edges across the dining ceiling.)
+  const pool = new THREE.SpotLight(WARM, 5, 4, 0.75, 1, 2); pool.name = 'light:kitchen-oval-pool';
+  pool.position.copy(below(F.kitchenOval, ENV.kitchenCeiling, 1)); pool.target.position.copy(P(F.kitchenOval.cx, F.kitchenOval.cy, 0));
+  lights.add(pool, pool.target);
   lights.add(kitchen, hall,
     pointLight('light:entry-flush', below(F.entryFlush, ENV.ceiling, 2), 1.3, 5),
     pointLight('light:bath-flush', below(F.bathFlush, ENV.ceiling, 2), 0.7, 3.2),
-    pointLight('light:vanity-bar', P(X.northInt + F.vanityBar.standoff + F.vanityBar.dia + 3, (Y.vanityA + Y.vanityB) / 2, BATH.vanity.light.elev - 1), 0.6, 3));
+    pointLight('light:vanity-bar', P(X.northInt + F.vanityBar.standoff + F.vanityBar.dia + 3, (Y.vanityA + Y.vanityB) / 2, BATH.vanity.light.elev - 1), 1.0, 3));
 
   // The two fixture shadow maps are static; re-render them only when a furniture piece has been moved/rotated.
   let sig = NaN, furn;
