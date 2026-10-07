@@ -7,12 +7,15 @@
 import * as THREE from 'three';
 import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { USDLoader } from 'three/addons/loaders/USDLoader.js';
 import { OPTIONS } from '/src/furniture/cabinet.js';
 import { m } from '/src/dimensions.js';
 
 const exporter = new USDZExporter();
 const toB64 = (buf) => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
-const usdz = async (obj) => toB64(await exporter.parseAsync(obj, { quickLookCompatible: true, maxTextureSize: 1024 }));
+// USDZExporter writes each node's local .matrix, which three only computes during a render / updateMatrixWorld —
+// without this every part lands at the origin (all panels stacked in the middle, as seen on the phone).
+const usdz = async (obj) => { obj.updateMatrixWorld(true); return toB64(await exporter.parseAsync(obj, { quickLookCompatible: true, maxTextureSize: 1024 })); };
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(720, 900); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9; renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -33,15 +36,20 @@ function thumb(obj) {
 }
 
 const out = [];
+const loader = new USDLoader();
+const b64ToBuf = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0)).buffer;
+/** Re-import the USDZ and report its size in inches — catches lost transforms (which collapse the model) before it ships. */
+const settle = () => new Promise((r) => setTimeout(r, 2500)); // USDLoader decodes embedded textures asynchronously
+const roundTrip = (b64) => { const o = loader.parse(b64ToBuf(b64)); o.updateMatrixWorld(true); const s = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()).divideScalar(0.0254); return { o, size: [s.x, s.y, s.z].map((v) => Math.round(v * 100) / 100) }; };
 for (const [i, o] of OPTIONS.entries()) {
-  const obj = o.build();
-  out.push({ file: `cabinet-${i + 1}`, usdz: await usdz(obj), jpg: thumb(obj) });
+  const data = await usdz(o.build()), rt = roundTrip(data); await settle();
+  out.push({ file: `cabinet-${i + 1}`, usdz: data, jpg: thumb(rt.o), size: rt.size, expect: [o.info.w, o.info.h, o.info.d] });
 }
 // all three side by side, 8" apart, centred — compare them together in AR
 const row = new THREE.Group(); row.name = 'cabinet-options';
 const gap = 8, total = OPTIONS.reduce((a, o) => a + o.info.w, 0) + gap * (OPTIONS.length - 1);
 let x = -total / 2;
 for (const o of OPTIONS) { const c = o.build(); c.position.x = m(x + o.info.w / 2); c.position.z = m(-o.info.d / 2); row.add(c); x += o.info.w + gap; }
-out.push({ file: 'cabinets-all', usdz: await usdz(row), jpg: thumb(row) });
+{ const data = await usdz(row), rt = roundTrip(data); await settle(); out.push({ file: 'cabinets-all', usdz: data, jpg: thumb(rt.o), size: rt.size, expect: [total, null, null] }); }
 window.__ar = out;
 </script>
