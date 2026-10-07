@@ -1,7 +1,8 @@
 // Proves furniture editing: drag moves a piece on the floor, walls/other furniture stop it, R rotates, click fires onClick, Reset restores.
 //   node tools/drag-test.mjs
 import { boot } from './boot.mjs';
-const { page, check, done } = await boot('?view=plan');
+const { page, check, done } = await boot('?view=plan') // cabinet slot emptied below so the desk can slide to the corner;
+await page.evaluate(() => { __apt.setCabinet(-1); document.getElementById('cabinets').hidden = true; }); // the panel overlays the SE of the plan
 const bounds = (n) => page.evaluate(`__apt.bounds('${n}')`);
 const mid = (b) => [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2];
 
@@ -29,7 +30,7 @@ let d = await drag('desk', 80, 60);
 check(d[2] <= 310.5 + 0.01 && d[3] <= 301 + 0.01, `walls block: desk max corner ${d.slice(2, 4)} inside 310.5 / 301`);
 check(d[3] > 270, `...and the piece slid along the wall instead of sticking: y1 ${d[3]}`);
 
-await drag('chair', -30, -70); await drag('desk', -60, -40); // chair out of the way, desk into open floor so there is room to rotate
+await drag('chair', -30, 80); await drag('desk', -40, -40); // chair out of the way (toward the slider), desk into open floor so there is room to rotate
 const r0 = await page.evaluate("__apt.size('desk')");
 await page.keyboard.press('KeyR');
 const r1 = await page.evaluate("__apt.size('desk')");

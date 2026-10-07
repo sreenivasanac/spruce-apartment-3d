@@ -32,7 +32,32 @@
     #dimlines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
     #dimlines path { stroke: #0b3d91; stroke-width: 1.4; fill: none; }
     #dimlines text { font: 600 12px system-ui, sans-serif; fill: #0b3d91; text-anchor: middle; paint-order: stroke; stroke: #fffffff0; stroke-width: 4px; stroke-linejoin: round; }
-    body.shot #ui, body.shot #hint, body.shot #status, body.shot #help, body.locked #hint { display: none; }
+    /* walk HUD: crosshair + context action + key legend */
+    #walkhud { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+    #walkhud .cross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px #0008; }
+    #action { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; white-space: nowrap; }
+    #walkhud .keys kbd { justify-self: start; }
+    #walkhud .keys { position: absolute; right: 12px; top: 56px; background: var(--panel); border-radius: 6px; padding: 6px 10px; display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; }
+    /* storage-cabinet comparison panel */
+    #cabinets { position: fixed; right: 12px; bottom: 52px; width: min(330px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; z-index: 5; }
+    #cabinets h2 { font-size: 13px; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+    #cabinets h2 { align-items: center; }
+    #cabinets .sub { margin: 0 0 6px; color: var(--accent); font-size: 12px; }
+    #cabFold { padding: 0 7px; line-height: 18px; }
+    #cabinets fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+    #cabinets legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    #cabinets label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 6px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; }
+    #cabinets label:has(input:checked) { border-color: var(--accent); background: #ffffff12; }
+    #cabinets label:has(input:focus-visible) { outline: 2px solid var(--focus); }
+    #cabinets input { margin-top: 3px; accent-color: var(--accent); }
+    #cabinets small { display: block; opacity: .8; }
+    #cabinets a { color: var(--accent); font-size: 12px; }
+    #cabinets .row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    #cabinets .row a { display: inline-flex; align-items: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none; }
+    #cabinets[data-collapsed="true"] fieldset, #cabinets[data-collapsed="true"] .row { display: none; }
+    #cabinets[data-collapsed="true"] .sub { margin: 0; }
+    body.shot #ui, body.shot #hint, body.shot #status, body.shot #help, body.shot #walkhud, body.shot #cabinets, body.locked #hint { display: none; }
+    @media (max-width: 700px) { #walkhud .keys { display: none; } }
   </style>
 </head>
 <body>
@@ -59,6 +84,7 @@
       <dt>Click</dt><dd>Mouse-look (Esc releases)</dd>
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Walk / strafe; walls and furniture stop you</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd> / <kbd>Q</kbd> <kbd>E</kbd></dt><dd>Turn without the mouse</dd>
+      <dt><kbd>F</kbd></dt><dd>Use what the crosshair points at: washer/dryer door, cabinet, coffee table, futon, wardrobe</dd>
     </dl>
     <h2>Furniture (Dollhouse / Plan)</h2>
     <dl>
@@ -68,8 +94,36 @@
       <dt>Arrows</dt><dd>Nudge 1" (<kbd>Shift</kbd> 6")</dd>
       <dt><kbd>R</kbd></dt><dd>Rotate 90°</dd>
     </dl>
+    <h2>Storage cabinet options</h2>
+    <dl>
+      <dt><kbd>C</kbd></dt><dd>Cycle A → B → C → none (any view)</dd>
+      <dt><kbd>G</kbd></dt><dd>Look at the cabinet</dd>
+      <dt>Click</dt><dd>Opens its doors (also the washer/dryer door)</dd>
+    </dl>
   </section>
   <div id="hint"></div>
+  <div id="walkhud" hidden>
+    <div class="cross" aria-hidden="true"></div>
+    <div id="action" role="status" hidden><kbd>F</kbd> <span></span></div>
+    <div class="keys" aria-label="Walk keys">
+      <kbd>W A S D</kbd><span>walk</span>
+      <kbd>← →</kbd><span>turn</span>
+      <kbd>F</kbd><span>use what you look at (doors, cabinet, table…)</span>
+      <kbd>C</kbd><span>next cabinet option · now <b id="cabNowWalk"></b></span>
+      <kbd>G</kbd><span>go to the cabinet</span>
+      <kbd>Esc</kbd><span>release mouse</span>
+    </div>
+  </div>
+  <section id="cabinets" aria-labelledby="cabTitle">
+    <h2 id="cabTitle">Storage cabinet options <button id="cabFold" type="button" aria-expanded="true" aria-controls="cabList" title="Collapse / expand this panel">–</button></h2>
+    <p class="sub">Showing <b id="cabNow"></b> · <kbd>C</kbd> cycles · <kbd>G</kbd> look at it</p>
+    <fieldset id="cabList"><legend>Choose a cabinet option to place by the slider</legend></fieldset>
+    <div class="row">
+      <button id="cabOpen" type="button" title="Open / close its doors and drawers">Open / close</button>
+      <button id="cabLook" type="button" aria-keyshortcuts="G" title="Frame the cabinet (G)">Look at it</button>
+      <a href="/ar.html" target="_blank" rel="noopener">View in AR on iPhone ↗</a>
+    </div>
+  </section>
   <div id="status" role="status" aria-live="polite"></div>
   <script type="module" src="/src/main.js"></script>
 </body>

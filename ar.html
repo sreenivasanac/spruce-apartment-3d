@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4f2ee" />
+  <link rel="icon" href="data:," />
+  <title>Cabinets in AR</title>
+  <style>
+    :root { --bg: #f4f2ee; --card: #ffffff; --ink: #1d1c1a; --muted: #6b6760; --line: #e2ded6; --accent: #8a5a2b; --chip: #efe9df; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #161514; --card: #201f1d; --ink: #f1eee8; --muted: #a8a39a; --line: #34322e; --accent: #d8a56f; --chip: #2b2925; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+    main { max-width: 760px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+    h1 { font-size: 24px; margin: 8px 0 4px; letter-spacing: -0.01em; }
+    .lead { color: var(--muted); margin: 0 0 14px; }
+    .note { background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin: 0 0 16px; }
+    .note[hidden] { display: none; }
+    ol.steps { margin: 0 0 18px; padding-left: 20px; font-size: 15px; }
+    ol.steps li { margin: 3px 0; }
+    .grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    .card.all { grid-column: 1 / -1; }
+    .card a[rel="ar"] { display: block; position: relative; }
+    .card img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; background: #f4f2ee; }
+    .card.all img { aspect-ratio: 16 / 10; }
+    .badge { position: absolute; left: 10px; top: 10px; background: #000a; color: #fff; font-weight: 600; font-size: 13px; border-radius: 999px; padding: 3px 10px; }
+    .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .body h2 { font-size: 16px; margin: 0; }
+    .dims { font-variant-numeric: tabular-nums; }
+    .dims small, .meta { color: var(--muted); font-size: 13px; }
+    .cta { margin-top: auto; display: flex; gap: 8px; align-items: center; justify-content: space-between; padding-top: 8px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; border-radius: 12px; background: var(--ink); color: var(--bg); font-weight: 600; text-decoration: none; font-size: 15px; }
+    .link { color: var(--accent); font-size: 14px; }
+    footer { color: var(--muted); font-size: 13px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Storage cabinet: see it in your room</h1>
+  <p class="lead">Three options, built to their listed sizes. Open one on your iPhone and it appears on your floor at true scale.</p>
+  <p class="note" id="unsupported" hidden>AR needs Safari on an iPhone or iPad. On this device, tapping a cabinet downloads its USDZ model instead.</p>
+  <ol class="steps">
+    <li>Tap a cabinet. The camera opens.</li>
+    <li>Move your phone slowly over the floor until the cabinet appears. It's locked at 100% size.</li>
+    <li>Drag it against the wall by the slider and twist with two fingers to turn it. Its back is the side facing away from you when it appears.</li>
+    <li>Tap the shutter to save a photo, then try the next one. <span id="space"></span></li>
+  </ol>
+  <div class="grid" id="grid"></div>
+  <footer>Models come from the same code as the 3D apartment (<code>src/furniture/cabinets/</code>); regenerate with <code>pnpm run export:ar</code>. Sizes are body sizes; knobs and pulls stick out about 1″ more.</footer>
+</main>
+<script type="module">
+import { CABINETS, FURNITURE } from '/src/dimensions.js';
+
+const opts = [['rustic', 'A'], ['pantry', 'B'], ['beadboard', 'C']];
+const cm = (inch) => Math.round(inch * 2.54);
+const arSupported = document.createElement('a').relList.supports('ar');
+document.getElementById('unsupported').hidden = arSupported;
+// free wall between the living-room desk and the cabinet's balcony-side end (plan inches)
+const free = CABINETS.anchor[1] - (FURNITURE.desk.pos[1] + FURNITURE.desk.w / 2);
+document.getElementById('space').textContent = `About ${Math.round(free)}″ (${cm(free)} cm) of wall is free between the desk and the balcony-side corner.`;
+
+const grid = document.getElementById('grid');
+const card = (file, badge, title, lines, cls = '') => {
+  const el = document.createElement('article'); el.className = `card ${cls}`;
+  // AR Quick Look requires the <a rel="ar"> to wrap exactly one <img>; the button is a plain link, which Safari also opens in Quick Look
+  el.innerHTML = `<a rel="ar" href="/ar/${file}.usdz#allowsContentScaling=0" aria-label="View ${title} in AR"><img src="/ar/${file}.jpg" alt="${title}" loading="lazy"></a>
+    <div class="body"><h2>${badge} · ${title}</h2>${lines}<div class="cta"><a class="btn" href="/ar/${file}.usdz#allowsContentScaling=0">View in my room</a></div></div>`;
+  const tag = document.createElement('span'); tag.className = 'badge'; tag.textContent = badge; el.querySelector('a').append(tag);
+  return el;
+};
+for (const [i, [key, letter]] of opts.entries()) {
+  const C = CABINETS[key];
+  grid.append(card(`cabinet-${i + 1}`, letter, C.title,
+    `<div class="dims">${C.w}″ W × ${C.d}″ D × ${C.h}″ H <small>(${cm(C.w)} × ${cm(C.d)} × ${cm(C.h)} cm)</small></div>
+     <div class="meta">${C.finish} · <a class="link" href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a></div>`));
+}
+grid.append(card('cabinets-all', 'A · B · C', 'All three side by side',
+  '<div class="meta">8″ apart, left to right A, B, C. Handy for comparing height and width in one view.</div>', 'all'));
+</script>
+</body>
+</html>

@@ -117,7 +117,7 @@ export const DOORS = {
   entry: { w: 36, wall: 'ext-east', hinge: 'a', swingInto: 'dining', openDeg: 0, type: 'slab-entry' },
   bathDoor: { w: 26, wall: 'bath-s', hinge: 'b', swingInto: 'bath', openDeg: 88, type: 'slab' },
   bedDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 88, type: 'slab' },
-  wdDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'dining', openDeg: 100, type: 'louver' }, // IMG_3945: hinged on the entry-side jamb, standing open
+  wdDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'dining', openDeg: 100, type: 'louver', toggle: 'washer/dryer door' }, // IMG_3945: hinged on the entry-side jamb, standing open
   linenDoor: { w: 24, wall: 'linen-front', hinge: 'b', swingInto: 'hall', openDeg: 0, type: 'slab' }, // IMG_3940/3941: lever on the vanity side
   coatCloset: { w: 40, wall: 'hall-wall', type: 'bypass-slab' },
   bedClosetDoors: { w: 66, wall: 'bedcloset-front', type: 'bypass-mirror' },
@@ -302,12 +302,31 @@ export const FINISHES = {
     plate: { w: 2.75, h: 4.5, d: 0.4, drop: 3, lcd: [1.3, 0.9] } },
 };
 
+// ---------------------------------------------------------------- storage-cabinet options (user is choosing one; compare in 3D + AR)
+// Overall sizes read off each listing's dimension image (spruce_apt_photos/cabinet-N/). Sub-dimensions marked ~ are scaled from photos.
+export const CABINETS = {
+  // Temu "70 Inches Bookshelf ... Rustic": 2 stacked 2-door modules w/ diamond-carved panels + 1 drawer (cabinet-1 dimension sheet)
+  rustic: { title: 'Rustic carved armoire', short: 'Rustic', w: 31.5, d: 13.78, h: 70.08, finish: 'Rustic oak brown', side: 0.79, top: 1.2,
+    plinth: 4.1, drawer: { h: 7.48, w: 29.92, depth: 11.81, travel: 9 }, door: { w: 14.96, h: 27.95, t: 0.75, stile: 2.0, rail: 2.2 }, seam: 0.8, gap: 0.1,
+    pull: { L: 4.5, proj: 1.0, dia: 0.36, inset: 1.4 }, url: 'https://www.temu.com/70-inches-bookshelf-and-bookcase-wooden-tall--and-drawer-retro-enclosed-library-book-shelves-for-home-office-living-room-rustic-g-601101644653535.html' },
+  // FULTRU 6-door pantry: shaker doors 2+1 over drawer+2 / 1, crown cap, arched plinth (cabinet-2 dimension sheet: 40.9 x 15.7 x 68.1)
+  pantry: { title: 'FULTRU 6-door pantry', short: 'FULTRU', w: 40.9, d: 15.7, h: 68.1, finish: 'White', cap: { t: 0.8, over: 0.4 }, side: 0.7, plinth: 3.2,
+    upperH: 28.9, leftW: 25.25, drawer: { h: 7.3, depth: 11.8, travel: 9 }, stile: 2.2, doorT: 0.75, gap: 0.12, knob: { dia: 1.15, proj: 1.0 },
+    url: 'https://www.temu.com/fultru-modern-kitchen-pantry-cabinet-with-6-doors-storage-drawer-freestanding-cupboard-suitable-for-dining-room-kitchen-office-shelves-doors-for-pantry-organization-space-saving-assembly-g-606497295693707.html' },
+  // 72" pantry, 6 beadboard doors + 22" & 11" drawers (cabinet-3 dimension sheet: 38.6 x 13.8 x 70.9; door 31.9 / drawer 6.3 / door 24.8 / base 3.2 / top 3.2)
+  beadboard: { title: 'Beadboard 6-door pantry', short: 'Beadboard', w: 38.6, d: 13.8, h: 70.9, finish: 'White', top: 3.2, topOver: 0.6, base: 3.2, baseOver: 0.35,
+    upperDoorH: 31.9, drawerH: 6.3, lowerDoorH: 24.8, frameW: 1.4, midStile: 1.0, leftDoorW: 11.2, stile: 1.6, doorT: 0.75, gap: 0.12, beadPitch: 1.25,
+    drawer: { depth: 12.5, travel: 9 }, knob: { dia: 1.0, proj: 1.0 }, cup: 3.0, rack: { d: 3.7, shelves: 3 }, url: 'https://www.temu.com/kitchen-pantry-with-6-door-and-2-drawers-72-tall-cabinet-with-adjustable-shelves-freestanding-tall-cupboard-storage-cabinet-g-601100746015618.html' },
+  // all options share one spot: back on the living-room S wall, balcony-side end 2" short of the slider wall (user: "near the desk, closer to the balcony")
+  anchor: [310.5 - 0.6, 301 - 0.6 - 2], // plan inches: back-corner of the cabinet nearest the balcony
+};
+
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
 export const FURNITURE = {
-  desk: { w: 63, d: 24, h: 29, topT: 0.7, leg: 1.5, pos: [298, 232], rot: -90, // w/d/h user-measured; rest from table.jpg
-    endPanelW: 16, seamW: 0.03, tubeT: 1, frameInset: 0.5, railInset: 1, railH: 1.5, footH: 0.5, footDia: 1.2, edgeR: 0.06, tubeR: 0.12, woodTile: 24,
-    clip: [2.2, 1.5, 0.25], clipLap: 0.5, boltDia: 0.35, boltT: 0.12, boltPitch: 1.2 }, // clip = mid-span connector plate [w,h,t], laps 0.5" onto the front rail => hangs 1" below it
-  chair: { w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [270, 232], rot: 90, // estimated from office_chair1/2.jpg; w/d/h = resulting envelope (h follows back + head.gap + headrest)
+  desk: { w: 63, d: 24, h: 29, pos: [298, 190], rot: -90, // user-given 63 L x 24 W x 29 H (long-desk listing); new desk replaces the splice-board one
+    topT: 0.75, edgeR: 0.08, tube: 1.2, frameInset: 0.6, apronH: 2.4, footH: 0.25, // ~ from spruce_apt_photos/long-desk photos
+    monitor: { w: 24.2, h: 14.4, t: 0.55, bezel: 0.3, chin: 0.7, lift: 4.2, neck: 1.6, baseW: 9, baseD: 7, baseT: 0.45, backset: 5 } }, // generic 27" 16:9
+  chair: { w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [270, 190], rot: 90, // estimated from office_chair1/2.jpg; w/d/h = resulting envelope (h follows back + head.gap + headrest)
     seat: { w: 19, d: 19, t: 3, r: 4.5, panT: 0.8, crown: 0.6, roll: 1.1, waterfall: 2.4, rearDrop: 0.5 },
     back: { w: 18.5, h: 20, bottom: 20.5, r: 4.5, taper: 0.84, reclineDeg: 8, lumbar: 1.4, wrap: 1.6, rimW: 0.45, rimD: 0.9, z: -7.6, ribPitch: 0.16, meshGap: 0.15,
       shellTop: [0.36, 0.22], shellOff: 0.4, slot: { w: 0.25, h: 1.1, pitch: 1, rowH: 1.5 }, spineW: [3.2, 5.5], spineT: 0.9 }, // shellTop = fraction of back.h at centre / sides
@@ -335,7 +354,7 @@ export const FURNITURE = {
     // puja articles (ASSUMED typical sizes, styled after home_mandir_earlier.jpeg)
     decor: { runnerDrop: 2.5, runnerMargin: 0.75, runnerFoldR: 0.18, runnerCurl: 0.2, flameLightIn: 25, frameBar: 0.8, frameT: 0.6, frameLean: 7, pic: [7, 9], omPic: [7.5, 9],
       murtiH: 5.2, smallMurtiH: 3.4, diyaR: 1.15, vilakkuH: 9, lotusH: 3.6, plateR: 2.9, bellH: 3.6, incenseL: 8, flameH: 0.95 } },
-  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [45, 225], rot: 90,
+  bed: { mattW: 54, mattL: 75, mattT: 12, frameW: 55.5, frameL: 77, deckH: 14, headH: 42, pos: [119, 261], rot: 180,
     // bed item: steel sections (full_size_bedframe.jpg), headboard panel elevations, soft goods
     post: 1.5, railH: 2.5, railT: 1, slats: 9, slat: 0.75, centreRail: { w: 1.5, h: 1.5 }, centreLegs: 3, leg: 1.25, footLegInset: 5, foot: { w: 1.5, h: 0.35 }, steelR: 0.1,
     bolt: { r: 0.28, h: 0.1, below: 0.55 }, bracket: { w: 3.5, h: 2.2, t: 0.12 }, // button-head bolts on the rail inner faces under each slat end + under the centre rail; centre-rail end plates
@@ -344,10 +363,11 @@ export const FURNITURE = {
     duvet: { th: 1.4, side: 11.5, foot: 10, foldAt: 27, foldW: 11, foldSag: 0.3, foldWave: 1.1, wrinkle: 0.3, pleat: 0.55, hemWave: 0.45, flare: 0.3, cornerBulge: 1.2, quilt: 11, puff: 0.45 },
     pillow: { w: 26, d: 19.5, h: 7, waist: 0.05, tiltDeg: 11, yawDeg: [3.2, -2.4], gap: 0.4, sink: 0.4, headGap: 1, piping: 0.12 } },
   // wife's bedroom set (user request): IKEA LAGKAPTEN top + ALEX drawer unit + 2 ADILS legs; same chair model
-  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, bandT: 0.04, drawerEase: 0.0625, sleeve: { w: 14.5, d: 10.5, h: 0.9, x: -9, z: 1.5, yawDeg: 6 }, pos: [135.7, 238], rot: -90 }, // 47" user-given
-  wifeChair: { module: 'chair', w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [115, 244], rot: 90 }, // pushed in (seat front ~3in under the top; arm tops 25.5 clear the 27.6 underside), centred on the knee-hole between ALEX (y<=229.25) and the legs (y~258)
+  wifeDesk: { w: 47.25, d: 23.625, h: 29, topT: 1.375, alex: { w: 14.125, d: 22.875, h: 27.5, drawers: 5, panelT: 0.625, inset: 0.75, plinthH: 1.5, gap: 0.125, frontT: 0.625, scoopW: 6.25, scoopH: 0.7, frontSetback: 0.5 }, edgeR: 0.06, legDia: 1.6, legInset: 2.75, footH: 0.6, plateDia: 3.5, plateT: 0.15, bandT: 0.04, drawerEase: 0.0625, sleeve: { w: 14.5, d: 10.5, h: 0.9, x: -9, z: 1.5, yawDeg: 6 }, pos: [18.4, 276], rot: 90 }, // 47" user-given
+  wifeChair: { module: 'chair', w: 24.4, d: 24.6, h: 50, seatH: 18.5, pos: [42, 276], rot: -90 }, // user layout (screenshot 2026-10-07): pulled up to her desk on the N wall
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
-  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 25.5, 12], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, stileW: 1.55, railW: 2.0, beadW: 0.35, beadH: 0.15, panelR: 1.0, handle: { w: 1.3, h: 3.8, proj: 0.45, bar: 0.32, r: 0.25, over: 0.05 }, ribPitch: 1.8, ribW: 0.6, ribT: 0.08, seamGap: 0.45, lidT: 0.3, lidOver: 0.2, postW: 1.0, rodDia: 0.75, rodDrop: 2.6, hangerDrop: 2.2, openDeg: 105, pos: [16.5, 279.5], rot: 90 },
+  wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 25.5, 12], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, stileW: 1.55, railW: 2.0, beadW: 0.35, beadH: 0.15, panelR: 1.0, handle: { w: 1.3, h: 3.8, proj: 0.45, bar: 0.32, r: 0.25, over: 0.05 }, ribPitch: 1.8, ribW: 0.6, ribT: 0.08, seamGap: 0.45, lidT: 0.3, lidOver: 0.2, postW: 1.0, rodDia: 0.75, rodDrop: 2.6, hangerDrop: 2.2, openDeg: 105, pos: [16.5, 178], rot: 90 },
+  cabinet: { pos: CABINETS.anchor, rot: -90 }, // option slot (src/furniture/cabinet.js): origin = back corner nearest the balcony
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.

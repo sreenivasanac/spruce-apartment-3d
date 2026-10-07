@@ -1,6 +1,7 @@
 // Deterministic screenshots + scene measurements, self-contained (starts its own Vite server on a free port,
 // so many agents can run it in parallel).
 //   node tools/shot.mjs IMG_3946 futon            -> shots/IMG_3946.png, shots/futon.png
+//   node tools/shot.mjs 'cabinet&cabinet=3'       -> extra query params after the shot name
 //   node tools/shot.mjs --view=plan --dims        -> shots/plan.png   (also --view=dollhouse)
 //   node tools/shot.mjs --out=/tmp/x IMG_3946     -> custom output dir
 //   node tools/shot.mjs --eval="__apt.bounds('futon')"   -> prints JSON (no screenshot). Also: __apt.size(n), __apt.names(), __apt.area
@@ -52,10 +53,11 @@ try {
     const file = resolve(outDir, `${v}${has('dims') ? '-dims' : ''}.png`);
     await page.screenshot({ path: file }); console.log(file);
   }
-  for (const n of names) {
-    const portrait = await (async () => { const { SHOTS } = await server.ssrLoadModule('/src/shots.js'); if (!SHOTS[n]) throw new Error(`unknown shot ${n}`); return !!SHOTS[n].portrait; })();
+  for (const n of names) { // a name may carry extra query params: `cabinet&cabinet=2` -> shots/cabinet-cabinet-2.png
+    const key = n.split('&')[0];
+    const portrait = await (async () => { const { SHOTS } = await server.ssrLoadModule('/src/shots.js'); if (!SHOTS[key]) throw new Error(`unknown shot ${key}`); return !!SHOTS[key].portrait; })();
     const page = await open(`?shot=${n}`, portrait);
-    const file = resolve(outDir, `${n}.png`);
+    const file = resolve(outDir, `${n.replace(/[&=]/g, '-')}.png`);
     await page.screenshot({ path: file }); await page.close(); console.log(file);
   }
 } finally { await browser.close(); await server.close(); }

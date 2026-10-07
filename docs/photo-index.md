@@ -48,3 +48,7 @@ Lens: UW = iPhone 0.5× ultra-wide (strong edge stretch), W = 1×. Camera poses 
 | full_size_bedframe.jpg | Black steel platform frame, 9 cross slats + centre rail w/ 3 centre legs, headboard = tall rectangular steel frame w/ dark-gray vertically-channelled upholstered panel (w/ USB/outlet) |
 | antbox1/2.jpg | ANTBOX portable wardrobe (wife's clothes, bedroom): white plastic folding cubes, 3 columns × 3 tiers (tall hanging tier w/ rod on top, mid tier, short bottom tier), smoked-brown translucent door panels w/ rounded corners, champagne-gold D handles, magnetic doors. User: 19.7 × 40.2 × 67 |
 | refs/IMG_3955/3956.jpg | Wife's desk: IKEA-style white 47" top (LAGKAPTEN) on a white 5-drawer ALEX unit (left, drawers w/ scooped finger-pulls) + 2 white round ADILS legs (right). Monitor/arm not required |
+| long-desk/*.jpg | New living-room desk (replaces table.jpg): 63 × 24 × 29 (listing sheet), light-oak top, white square-tube frame with closed rectangular side frames |
+| cabinet-1/*.avif | Option A, rustic armoire: dimension sheet 31.50 W × 13.78 D × 70.08 H; 2 stacked 2-door modules, diamond/chevron carved panels, black bar pulls, plank-front drawer |
+| cabinet-2/*.avif | Option B, FULTRU 6-door pantry: sheet 40.9 W × 15.7 D × 68.1 H; shaker doors 2+1 over drawer+2 / 1, black knobs, arched plinth |
+| cabinet-3/*.avif | Option C, beadboard pantry: sheet 38.6 W × 13.8 D × 70.9 H; 6 beadboard doors, 22.2" + 11.1" drawers with cup pulls, spice racks on the right doors |

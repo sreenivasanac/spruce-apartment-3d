@@ -180,7 +180,22 @@ function hingedDoor(id) {
   if (entry) hw.push(entryHardware(lx, zOut, zIn, s, xa + L / 2));
   leaf.add(merged(`door:${id}:hardware`, hw));
   g.add(leaf);
+  if (D.toggle) swingToggle(g, leaf, THREE.MathUtils.degToRad(-s * dir * D.openDeg), D.toggle);
   return g;
+}
+
+/** Clickable door (dollhouse/plan click, or the walk-mode action key): swings the leaf between shut and its open angle. */
+function swingToggle(g, leaf, openRad, what) {
+  let target = null; // null = leave the leaf where the module / a ?shot= pose put it
+  const isOpen = () => Math.abs(target ?? leaf.rotation.y) > 0.01;
+  const label = () => { g.userData.actionLabel = `${isOpen() ? 'Close' : 'Open'} the ${what}`; };
+  g.userData.onClick = () => { target = isOpen() ? 0 : openRad; label(); };
+  leaf.userData.tick = (dt) => {
+    if (target === null) return;
+    const d = target - leaf.rotation.y;
+    if (Math.abs(d) > 1e-4) leaf.rotation.y += Math.sign(d) * Math.min(Math.abs(d), dt * 2.4); // ~0.7 s for a full swing
+  };
+  label();
 }
 
 /** Full-louver leaf (IMG_3945): stiles + three rails, two panels of fixed slats as one InstancedMesh. */

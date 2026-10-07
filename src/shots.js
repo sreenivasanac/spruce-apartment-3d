@@ -34,15 +34,17 @@ export const SHOTS = {
   IMG_3951: { pos: [48, 66, 62], target: [40, 8, 44], vfov: UW_P, portrait: true, note: 'tub/shower 2' },
   IMG_3952: { pos: [140, -60, 62], target: [122, 0, 44], vfov: UW_P, portrait: true, note: 'entry door from corridor (corridor itself out of scope)' },
   // ---- furniture beauty shots (compare with product photos in spruce_apt_photos/) ----
-  desk: { pos: [225, 170, 55], target: [298, 232, 26], vfov: 45 },
-  chair: { pos: [225, 200, 50], target: [270, 232, 24], vfov: 40 },
+  desk: { pos: [222, 150, 58], target: [298, 190, 30], vfov: 50 },
+  chair: { pos: [225, 160, 50], target: [270, 190, 24], vfov: 40 },
   futon: { pos: [250, 222, 50], target: [169, 222, 16], vfov: 45 },
   liftTop: { pos: [262, 205, 46], target: [205, 222, 10], vfov: 38 },
   mandir: { pos: [188, 105, 56], target: [188, 8, 38], vfov: 42 },
-  bed: { pos: [130, 292, 66], target: [45, 232, 14], vfov: 55 },
-  wifeDesk: { pos: [70, 290, 58], target: [132, 238, 24], vfov: 50 },
-  wardrobe: { pos: [110, 240, 56], target: [16, 279, 34], vfov: 50 },
+  bed: { pos: [60, 175, 66], target: [119, 261, 16], vfov: 60 },
+  wifeDesk: { pos: [88, 230, 58], target: [18, 276, 26], vfov: 55 },
+  wardrobe: { pos: [100, 205, 58], target: [16, 178, 36], vfov: 55 },
+  cabinet: { pos: [205, 250, 58], target: [300, 278, 36], vfov: 55, note: 'storage-cabinet option slot by the slider (add ?cabinet=1|2|3)' },
   // ---- overviews ----
   living: { pos: [160, 150, 64], target: [290, 290, 30], vfov: 75 },
   bedroom: { pos: [140, 165, 64], target: [30, 290, 25], vfov: 75 },
+  bedroom2: { pos: [20, 290, 64], target: [120, 170, 25], vfov: 75 },
 };

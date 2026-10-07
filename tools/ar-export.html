@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>AR export (internal)</title>
+<!-- Driven by tools/export-ar.mjs: builds the three cabinet options from the same modules the 3D model uses,
+     exports each to USDZ (true scale, floor-anchored) for iPhone AR Quick Look, and renders catalogue thumbnails. -->
+<script type="module">
+import * as THREE from 'three';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { OPTIONS } from '/src/furniture/cabinet.js';
+import { m } from '/src/dimensions.js';
+
+const exporter = new USDZExporter();
+const toB64 = (buf) => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
+const usdz = async (obj) => toB64(await exporter.parseAsync(obj, { quickLookCompatible: true, maxTextureSize: 1024 }));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(720, 900); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9; renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+const env = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+function thumb(obj) {
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf4f2ee); scene.environment = env; scene.environmentIntensity = 0.45;
+  const sun = new THREE.DirectionalLight(0xfff6ea, 1.1); sun.position.set(1.5, 3, 2.5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -1 });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({ opacity: 0.18 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+  scene.add(sun, floor, obj);
+  const b = new THREE.Box3().setFromObject(obj), size = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
+  const cam = new THREE.PerspectiveCamera(30, 720 / 900, 0.1, 50), half = Math.max(size.y * 0.6, (size.x * 0.66 * 900) / 720), dist = half / Math.tan(THREE.MathUtils.degToRad(15)); // fit height or width
+  cam.position.set(c.x + dist * 0.42, c.y + 0.15, c.z + dist * 0.91); cam.lookAt(c);
+  renderer.render(scene, cam);
+  scene.remove(obj);
+  return renderer.domElement.toDataURL('image/jpeg', 0.88);
+}
+
+const out = [];
+for (const [i, o] of OPTIONS.entries()) {
+  const obj = o.build();
+  out.push({ file: `cabinet-${i + 1}`, usdz: await usdz(obj), jpg: thumb(obj) });
+}
+// all three side by side, 8" apart, centred — compare them together in AR
+const row = new THREE.Group(); row.name = 'cabinet-options';
+const gap = 8, total = OPTIONS.reduce((a, o) => a + o.info.w, 0) + gap * (OPTIONS.length - 1);
+let x = -total / 2;
+for (const o of OPTIONS) { const c = o.build(); c.position.x = m(x + o.info.w / 2); c.position.z = m(-o.info.d / 2); row.add(c); x += o.info.w + gap; }
+out.push({ file: 'cabinets-all', usdz: await usdz(row), jpg: thumb(row) });
+window.__ar = out;
+</script>

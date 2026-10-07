@@ -143,8 +143,8 @@ planCtl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
 const walk = new PointerLockControls(persp, renderer.domElement);
 const hint = $('hint');
 const HINT = {
-  dollhouse: 'Drag to orbit · scroll to zoom · drag furniture to move it',
-  walk: 'Click to look around · WASD to walk · ←/→ turn · Esc releases the mouse',
+  dollhouse: 'Drag to orbit · scroll to zoom · drag furniture to move it · click doors, the coffee table or a cabinet to open it',
+  walk: 'Click to look around · WASD to walk · ←/→ turn · F use doors/furniture · C next cabinet · Esc releases the mouse',
   plan: 'Drag to pan · scroll to zoom · drag furniture · M toggles dimensions',
 };
 let mode;
@@ -173,6 +173,7 @@ function setMode(next) {
   persp.updateProjectionMatrix();
   if (next !== 'plan') setDims(false);
   hint.textContent = HINT[next];
+  walkHud.hidden = next !== 'walk'; aimed = null; actionEl.hidden = true;
   document.querySelectorAll('#ui [data-mode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === next));
 }
 document.querySelectorAll('#ui [data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -232,7 +233,7 @@ const blocked = (rect, ignore) => !inside(rect) || statics.some((w) => hits(rect
 
 // ---------------------------------------------------------------- walk
 const keys = new Set();
-const isTyping = (e) => e.target.closest?.('#ui, #help');
+const isTyping = (e) => e.target.closest?.('#ui, #help, #cabinets');
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 const dir = new THREE.Vector3(), right = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
@@ -294,9 +295,19 @@ const pick = (e) => {
   let o = hit?.object; while (o && !o.userData.draggable) o = o.parent;
   return o ? { obj: o, hit } : null;
 };
+/** Non-furniture interactive objects (e.g. the washer/dryer door): anything outside `furniture` with userData.onClick. */
+const clickables = []; root.traverse((o) => { if (o.userData.onClick && !o.userData.draggable) clickables.push(o); });
+const actionTarget = (o) => { while (o && !o.userData.onClick) o = o.parent; return o; };
+let pendingClick = null;
 renderer.domElement.addEventListener('pointerdown', (e) => {
   if (mode === 'walk' || e.button !== 0) return;
-  const p = pick(e); if (!p) { select(null); return; }
+  const p = pick(e);
+  if (!p) {
+    select(null);
+    const hit = ray.intersectObjects(clickables, true)[0]; // ray already set by pick()
+    pendingClick = hit ? { target: actionTarget(hit.object), at: [e.clientX, e.clientY] } : null;
+    return;
+  }
   select(p.obj); dragging = p.obj; downAt = [e.clientX, e.clientY];
   ray.ray.intersectPlane(floorPlane, grab); grab.sub(dragging.position); grab.y = 0;
   orbit.enabled = planCtl.enabled = false;
@@ -309,9 +320,13 @@ addEventListener('pointermove', (e) => {
   moveBy(dragging, at.x - grab.x - dragging.position.x, at.z - grab.z - dragging.position.z);
 });
 addEventListener('pointerup', (e) => {
+  if (pendingClick) { // a click (not an orbit drag) on a door etc.
+    if (Math.hypot(e.clientX - pendingClick.at[0], e.clientY - pendingClick.at[1]) <= 4) use(pendingClick.target);
+    pendingClick = null;
+  }
   if (!dragging) return;
   const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4;
-  if (!moved) { let o = pick(e)?.hit.object; while (o && !o.userData.onClick) o = o.parent; o?.userData.onClick(); }
+  if (!moved) use(actionTarget(pick(e)?.hit.object));
   dragging = null; orbit.enabled = mode === 'dollhouse'; planCtl.enabled = mode === 'plan';
 });
 function resetFurniture() {
@@ -331,6 +346,9 @@ addEventListener('keydown', (e) => {
   if (go) return setMode(go);
   if (e.code === 'KeyM') return toggleDims();
   if (e.code === 'KeyH' || e.key === '?') return toggleHelp();
+  if (e.code === 'KeyC') return cycleCabinet();
+  if (e.code === 'KeyG') return lookAtCabinet();
+  if (e.code === 'KeyF' && mode === 'walk') return use(aimed);
   if (mode === 'walk') { if (e.code.startsWith('Arrow')) e.preventDefault(); return; }
   if (e.code === 'KeyR') return rotateSelected();
   if (e.code === 'KeyN') { const f = furniture.children; return select(f[(f.indexOf(selected) + 1) % f.length]); }
@@ -338,6 +356,81 @@ addEventListener('keydown', (e) => {
   const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.code];
   if (d && selected) { e.preventDefault(); moveBy(selected, d[0], d[1]); }
 });
+
+// ---------------------------------------------------------------- interaction: doors, coffee table, futon, wardrobe, cabinet
+const ACTION_DEFAULT = { liftTop: 'Raise / lower the coffee-table top', futon: 'Fold the futon sofa ⇄ bed', wardrobe: 'Open / close the wardrobe doors' };
+const actionLabel = (o) => o.userData.actionLabel ?? ACTION_DEFAULT[o.userData.key] ?? `Use the ${o.name}`;
+function use(o) {
+  if (!o?.userData.onClick) return;
+  o.userData.onClick();
+  status.textContent = `${actionLabel(o)}`;
+}
+// walk mode: whatever interactive thing is under the crosshair within reach can be used with F
+const REACH = 2.6, centre = new THREE.Vector2(0, 0), walkHud = $('walkhud'), actionEl = $('action');
+let aimed = null, aimFrame = 0;
+function updateAim() {
+  if (mode !== 'walk' || ++aimFrame % 6) return;
+  // bounding-box test, not mesh hits: louvered doors and open shelving are mostly holes, and the box is what you "point at"
+  ray.setFromCamera(centre, persp);
+  let best = REACH;
+  aimed = null;
+  for (const o of [...clickables, ...furniture.children]) {
+    if (!o.userData.onClick) continue;
+    const p = ray.ray.intersectBox(box3.setFromObject(o), _v);
+    const d = p ? p.distanceTo(ray.ray.origin) : Infinity;
+    if (d < best) { best = d; aimed = o; }
+  }
+  actionEl.hidden = !aimed;
+  if (aimed) actionEl.querySelector('span').textContent = actionLabel(aimed);
+}
+
+// storage-cabinet options: one slot, three products, compared in place (panel, C key, ?cabinet=1|2|3)
+const cab = furniture.children.find((f) => f.userData.key === 'cabinet');
+const cabPanel = $('cabinets');
+const fmt = (v) => `${v}″`;
+function setCabinet(i, announce = true) {
+  if (!cab) return;
+  cab.userData.setOption(i); fpCache.delete(cab);
+  if (selected === cab) halo.setFromObject(cab);
+  try { localStorage.setItem('spruce.cabinet', String(i + 1)); } catch { /* private mode */ }
+  for (const r of cabPanel.querySelectorAll('input[name=cab]')) r.checked = Number(r.value) === i;
+  const o = cab.userData.options[i];
+  const text = o ? `Cabinet ${o.letter} · ${o.info.title} · ${fmt(o.info.w)} W × ${fmt(o.info.d)} D × ${fmt(o.info.h)} H` : 'No cabinet';
+  $('cabNow').textContent = $('cabNowWalk').textContent = o ? `${o.letter} · ${o.info.short}` : 'none';
+  $('cabOpen').disabled = $('cabLook').disabled = !o;
+  if (announce) status.textContent = text;
+}
+if (cab) {
+  const list = $('cabList');
+  cab.userData.options.forEach((o, i) => {
+    const C = o.info, id = `cab-${i}`;
+    list.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="radio" name="cab" id="${id}" value="${i}"><span><b>${o.letter} · ${C.title}</b><small>${fmt(C.w)} W × ${fmt(C.d)} D × ${fmt(C.h)} H · ${C.finish}</small><a href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a></span></label>`);
+  });
+  list.insertAdjacentHTML('beforeend', '<label for="cab-none"><input type="radio" name="cab" id="cab-none" value="-1"><span><b>None</b><small>see the empty spot</small></span></label>');
+  list.addEventListener('change', (e) => setCabinet(Number(e.target.value)));
+  $('cabOpen').addEventListener('click', () => use(cab));
+  $('cabLook').addEventListener('click', lookAtCabinet);
+  const fold = (collapsed) => { cabPanel.dataset.collapsed = collapsed; $('cabFold').setAttribute('aria-expanded', !collapsed); $('cabFold').textContent = collapsed ? '+' : '–'; try { localStorage.setItem('spruce.cabFold', collapsed ? '1' : ''); } catch { /* */ } };
+  $('cabFold').addEventListener('click', () => fold(cabPanel.dataset.collapsed !== 'true'));
+  try { fold(localStorage.getItem('spruce.cabFold') === '1'); } catch { fold(false); }
+  setCabinet(cab.userData.index, false);
+} else cabPanel.hidden = true;
+const cycleCabinet = () => cab && setCabinet(((cab.userData.index + 2) % (cab.userData.options.length + 1)) - 1); // A → B → C → none → A
+/** Frame the cabinet: dollhouse orbits around it, walk mode stands you ~7 ft in front of it. */
+function lookAtCabinet() {
+  if (!cab?.children.length) return;
+  const b = new THREE.Box3().setFromObject(cab), c = b.getCenter(new THREE.Vector3());
+  const front = new THREE.Vector3(0, 0, 1).applyQuaternion(cab.quaternion); // the cabinet's +Z
+  if (mode === 'walk') {
+    persp.position.set(c.x + front.x * m(84), m(ENV.eye), c.z + front.z * m(84));
+    persp.lookAt(c.x, m(40), c.z);
+  } else {
+    if (mode !== 'dollhouse') setMode('dollhouse');
+    orbit.target.copy(c).setY(m(30));
+    persp.position.set(c.x + front.x * m(110) - front.z * m(40), m(95), c.z + front.z * m(110) + front.x * m(40));
+    orbit.update();
+  }
+}
 
 // ---------------------------------------------------------------- shots
 function applyShot(name) {
@@ -368,6 +461,7 @@ const tickers = []; scene.traverse((o) => { if (o.userData.tick) tickers.push(o)
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   stepWalk(dt);
+  updateAim();
   if (orbit.enabled) orbit.update();
   tickers.forEach((o) => o.userData.tick(dt));
   composer.render();
@@ -379,7 +473,7 @@ renderer.setAnimationLoop(() => {
 window.__apt = {
   THREE, scene, renderer, SHOTS, area, failed, furniture,
   get camera() { return camera; }, get mode() { return mode; }, get selected() { return selected?.name ?? null; },
-  setMode, blocked, colliders: statics,
+  setMode, blocked, colliders: statics, setCabinet, use: (name) => use(actionTarget(scene.getObjectByName(name))),
   find: (name) => scene.getObjectByName(name),
   names: () => { const n = []; scene.traverse((o) => o.name && n.push(o.name)); return n; },
   size: (name) => { const o = scene.getObjectByName(name); return o ? sizeInches(o) : null; },

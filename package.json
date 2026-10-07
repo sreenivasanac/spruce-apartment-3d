@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "shot": "node tools/shot.mjs"
+    "shot": "node tools/shot.mjs",
+    "dev:phone": "vite --host --port 5183",
+    "export:ar": "node tools/export-ar.mjs"
   },
   "keywords": [],
   "author": "",
