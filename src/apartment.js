@@ -1,7 +1,7 @@
 // Assembles the whole apartment from the per-item modules.
 // Modules are loaded dynamically and individually guarded, so one broken module never blanks the scene
 // (failures are listed in window.__apt.failed and logged as warnings).
-import { FURNITURE } from './dimensions.js';
+import { FURNITURE, floorAt } from './dimensions.js';
 import { buildShell } from './shell.js';
 import { group, place } from './lib/build.js';
 
@@ -23,7 +23,7 @@ export async function buildApartment(ctx) {
     const g = await load(FURN_MODS, `./furniture/${FURNITURE[key].module ?? key}.js`, ctx); // `module` lets two pieces share a model
     if (!g) continue;
     const D = FURNITURE[key];
-    place(g, D.pos[0], D.pos[1], D.pos[0] < 148 && D.pos[1] > 156.5 ? 0.5 : 0, D.rot); // bedroom pieces sit on the carpet
+    place(g, D.pos[0], D.pos[1], floorAt(D.pos[0], D.pos[1]), D.rot); // carpet / LVP / deck floor height
     g.userData.draggable = true;
     g.userData.key = key;
     g.name = key;

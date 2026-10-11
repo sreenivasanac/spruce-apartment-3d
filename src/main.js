@@ -7,7 +7,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { ENV, ROOMS, WALLS, DOORS, FURNITURE, m, IN } from './dimensions.js';
+import { ENV, ROOMS, WALLS, DOORS, FURNITURE, floorAt, m, IN } from './dimensions.js';
 import { buildApartment, failed } from './apartment.js';
 import { wallColliders, areaReport } from './shell.js';
 import { sizeInches, place } from './lib/build.js';
@@ -267,7 +267,6 @@ function select(obj) {
   $('rotate').disabled = !obj;
   status.textContent = obj ? `${obj.name} selected — drag or arrow keys to move, R to rotate, Esc to deselect` : '';
 }
-const onCarpet = (x, y) => [ROOMS.bedroom.r, ROOMS.bedCloset.r].some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
 /** Try to move a piece by (dx, dz) metres: axis-separated so it slides along obstacles; never leaves the floor. */
 function moveBy(obj, dx, dz) {
   const wasStuck = blocked(fp(obj), obj); // a piece that already overlaps something may always be pulled free
@@ -279,7 +278,7 @@ function moveBy(obj, dx, dz) {
       obj.position[axis] -= d * k; fpCache.delete(obj);
     }
   }
-  obj.position.y = onCarpet(obj.position.x / IN, obj.position.z / IN) ? m(ENV.carpetT) : 0;
+  obj.position.y = m(floorAt(obj.position.x / IN, obj.position.z / IN));
   halo.setFromObject(obj);
 }
 function rotateSelected() {
@@ -330,7 +329,7 @@ addEventListener('pointerup', (e) => {
   dragging = null; orbit.enabled = mode === 'dollhouse'; planCtl.enabled = mode === 'plan';
 });
 function resetFurniture() {
-  furniture.children.forEach((g) => { const D = FURNITURE[g.userData.key]; place(g, D.pos[0], D.pos[1], g.position.y / IN, D.rot); g.position.y = onCarpet(D.pos[0], D.pos[1]) ? m(ENV.carpetT) : 0; });
+  furniture.children.forEach((g) => { const D = FURNITURE[g.userData.key]; place(g, D.pos[0], D.pos[1], g.position.y / IN, D.rot); g.position.y = m(floorAt(D.pos[0], D.pos[1])); });
   fpCache = new Map(); select(null); status.textContent = 'Furniture reset';
 }
 $('reset').addEventListener('click', resetFurniture);
@@ -358,7 +357,7 @@ addEventListener('keydown', (e) => {
 });
 
 // ---------------------------------------------------------------- interaction: doors, coffee table, futon, wardrobe, cabinet
-const ACTION_DEFAULT = { liftTop: 'Raise / lower the coffee-table top', futon: 'Fold the futon sofa ⇄ bed', wardrobe: 'Open / close the wardrobe doors' };
+const ACTION_DEFAULT = { shed: 'Open / close the storage shed', liftTop: 'Raise / lower the coffee-table top', futon: 'Fold the futon sofa ⇄ bed', wardrobe: 'Open / close the wardrobe doors' };
 const actionLabel = (o) => o.userData.actionLabel ?? ACTION_DEFAULT[o.userData.key] ?? `Use the ${o.name}`;
 function use(o) {
   if (!o?.userData.onClick) return;

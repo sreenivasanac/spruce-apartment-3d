@@ -321,6 +321,12 @@ export const CABINETS = {
   anchor: [310.5 - 0.6, 301 - 0.6 - 2], // plan inches: back-corner of the cabinet nearest the balcony
 };
 
+/** Finished-floor elevation (inches) at plan point x,y: carpet stands proud in the bedroom + its closet, the deck sits lower. */
+export function floorAt(x, y) {
+  if (y > ENV.d) return -DECK.floorDrop;
+  return [ROOMS.bedroom.r, ROOMS.bedCloset.r].some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1) ? ENV.carpetT : 0;
+}
+
 // ---------------------------------------------------------------- furniture (pos = plan x,y of center; rot = degrees about up)
 export const FURNITURE = {
   desk: { w: 63, d: 24, h: 29, pos: [298, 190], rot: -90, // user-given 63 L x 24 W x 29 H (long-desk listing); new desk replaces the splice-board one
@@ -368,6 +374,11 @@ export const FURNITURE = {
   // ANTBOX portable wardrobe, user-given 19.7 x 40.2 x 67 (40.2 is the 3-door front width, 19.7 the depth)
   wardrobe: { w: 40.2, d: 19.7, h: 67, cols: 3, tiers: [29.5, 25.5, 12], wallT: 0.5, doorT: 0.7, doorGap: 0.1, doorR: 1.1, stileW: 1.55, railW: 2.0, beadW: 0.35, beadH: 0.15, panelR: 1.0, handle: { w: 1.3, h: 3.8, proj: 0.45, bar: 0.32, r: 0.25, over: 0.05 }, ribPitch: 1.8, ribW: 0.6, ribT: 0.08, seamGap: 0.45, lidT: 0.3, lidOver: 0.2, postW: 1.0, rodDia: 0.75, rodDrop: 2.6, hangerDrop: 2.2, openDeg: 105, pos: [16.5, 178], rot: 90 },
   cabinet: { pos: CABINETS.anchor, rot: -90 }, // option slot (src/furniture/cabinet.js): origin = back corner nearest the balcony
+  // Duramax StoreAway-style horizontal resin garbage shed (Wayfair spec sheet): 4'3 1/5" W x 2'5 1/10" D x 3'7 31/100" H.
+  // Deck, S end: back against the white privacy partition (inner face x=313.5), doors facing N along the deck, clear of the slider.
+  shed: { w: 51.2, d: 29.1, h: 43.31, pos: [298.4, 337], rot: -90,
+    door: { w: 43.1, h: 37.6 }, interior: { w: 46, d: 24.5, h: 38.9 }, // spec sheet (door pair overall; interior)
+    baseH: 3, bodyInset: 0.8, wallT: 0.9, postW: 2.2, lidT: 1.5, lidLip: 1.8, lidOver: 0.6, backH: 40.6, plankPitch: 3.4, doorT: 1.2, handle: { h: 5.5, proj: 1.4 } }, // ~ from the listing/seller photos
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.

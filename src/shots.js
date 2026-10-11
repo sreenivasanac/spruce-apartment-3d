@@ -43,6 +43,8 @@ export const SHOTS = {
   wifeDesk: { pos: [88, 230, 58], target: [18, 276, 26], vfov: 55 },
   wardrobe: { pos: [100, 205, 58], target: [16, 178, 36], vfov: 55 },
   cabinet: { pos: [205, 250, 58], target: [300, 278, 36], vfov: 55, note: 'storage-cabinet option slot by the slider (add ?cabinet=1|2|3)' },
+  shed: { pos: [215, 352, 60], target: [300, 337, 22], vfov: 60, note: 'deck storage shed (S end, against the privacy partition)' },
+  shed2: { pos: [228, 240, 62], target: [296, 337, 24], vfov: 60, note: 'shed seen from the living room through the slider' },
   // ---- overviews ----
   living: { pos: [160, 150, 64], target: [290, 290, 30], vfov: 75 },
   bedroom: { pos: [140, 165, 64], target: [30, 290, 25], vfov: 75 },
