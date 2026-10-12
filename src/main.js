@@ -403,7 +403,7 @@ if (cab) {
   const list = $('cabList');
   cab.userData.options.forEach((o, i) => {
     const C = o.info, id = `cab-${i}`;
-    list.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="radio" name="cab" id="${id}" value="${i}"><span><b>${o.letter} · ${C.title}</b><small>${fmt(C.w)} W × ${fmt(C.d)} D × ${fmt(C.h)} H · ${C.finish}</small><a href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a></span></label>`);
+    list.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="radio" name="cab" id="${id}" value="${i}"><span><b>${o.letter} · ${C.title}</b><small>${fmt(C.w)} W × ${fmt(C.d)} D × ${fmt(C.h)} H · ${C.finish}</small>${C.url ? `<a href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a>` : '<small>from your photo</small>'}</span></label>`);
   });
   list.insertAdjacentHTML('beforeend', '<label for="cab-none"><input type="radio" name="cab" id="cab-none" value="-1"><span><b>None</b><small>see the empty spot</small></span></label>');
   list.addEventListener('change', (e) => setCabinet(Number(e.target.value)));
@@ -414,7 +414,7 @@ if (cab) {
   try { fold(localStorage.getItem('spruce.cabFold') === '1'); } catch { fold(false); }
   setCabinet(cab.userData.index, false);
 } else cabPanel.hidden = true;
-const cycleCabinet = () => cab && setCabinet(((cab.userData.index + 2) % (cab.userData.options.length + 1)) - 1); // A → B → C → none → A
+const cycleCabinet = () => cab && setCabinet(((cab.userData.index + 2) % (cab.userData.options.length + 1)) - 1); // A → B → C → D → none → A
 /** Frame the cabinet: dollhouse orbits around it, walk mode stands you ~7 ft in front of it. */
 function lookAtCabinet() {
   if (!cab?.children.length) return;

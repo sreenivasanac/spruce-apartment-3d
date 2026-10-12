@@ -22,9 +22,9 @@ await page.keyboard.press('KeyF'); await wait(1200);
 const a2 = await leafAngle();
 check(Math.abs(a2) > 1, `F re-opens the W/D door (${a2.toFixed(2)} rad)`);
 
-// cabinet options: C cycles A → B → C → none → A, each at its listed size, back on the S wall
-const expect = { 0: [31.5, 13.78, 70.08], 1: [40.9, 15.7, 68.1], 2: [38.6, 13.8, 70.9] };
-for (let k = 0; k < 4; k++) {
+// cabinet options: C cycles A → B → C → D → none → A, each at its listed size, back on the S wall
+const expect = { 0: [31.5, 13.78, 70.08], 1: [40.9, 15.7, 68.1], 2: [38.6, 13.8, 70.9], 3: [31.5, 15.7, 70.9] };
+for (let k = 0; k < 5; k++) {
   const r = await page.evaluate(() => ({ i: __apt.find('cabinet').userData.index, b: __apt.bounds('cabinet') }));
   if (r.i >= 0) {
     const [W, D, H] = expect[r.i], w = r.b[3] - r.b[1], h = r.b[5] - r.b[4];

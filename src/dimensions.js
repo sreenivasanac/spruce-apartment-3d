@@ -317,6 +317,11 @@ export const CABINETS = {
   beadboard: { title: 'Beadboard 6-door pantry', short: 'Beadboard', w: 38.6, d: 13.8, h: 70.9, finish: 'White', top: 3.2, topOver: 0.6, base: 3.2, baseOver: 0.35,
     upperDoorH: 31.9, drawerH: 6.3, lowerDoorH: 24.8, frameW: 1.4, midStile: 1.0, leftDoorW: 11.2, stile: 1.6, doorT: 0.75, gap: 0.12, beadPitch: 1.25,
     drawer: { depth: 12.5, travel: 9 }, knob: { dia: 1.0, proj: 1.0 }, cup: 3.0, rack: { d: 3.7, shelves: 3 }, url: 'https://www.temu.com/kitchen-pantry-with-6-door-and-2-drawers-72-tall-cabinet-with-adjustable-shelves-freestanding-tall-cupboard-storage-cabinet-g-601100746015618.html' },
+  // Steel office storage cabinet (user photo, 2026-10-12): charcoal powder-coated carcass framing two tall + two short cream doors,
+  // white bar handles, a key lock on each pair. No listing size — user: "similar size as the first cabinet" (option A) => 31.5 x 15.7 x 70.9 (common steel-cabinet size).
+  steel: { title: 'Steel locking cabinet', short: 'Steel', w: 31.5, d: 15.7, h: 70.9, finish: 'Charcoal frame, cream doors', frame: 1.2, top: 1.4, plinth: 2.6,
+    midRail: 1.1, upperDoorH: 38.4, gap: 0.12, doorT: 0.8, sheetT: 0.06, shelves: { upper: 2, lower: 1 }, handle: { L: 6.3, proj: 1.1, dia: 0.5 }, lockDia: 0.7,
+    url: null },
   // all options share one spot: back on the living-room S wall, balcony-side end 2" short of the slider wall (user: "near the desk, closer to the balcony")
   anchor: [310.5 - 0.6, 301 - 0.6 - 2], // plan inches: back-corner of the cabinet nearest the balcony
 };

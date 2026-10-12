@@ -16,7 +16,7 @@ pnpm run dev            # http://localhost:5173
 | **Dollhouse** (`1`) | Drag to orbit, scroll to zoom. Drag furniture to move it; it stays on the floor and stops at walls and other furniture. `R` rotates the selected piece. Click the **washer/dryer door**, the coffee table, the futon, the wardrobe, the cabinet or the **deck storage shed** to open or close it. |
 | **Walk** (`2`) | Click to look around, `WASD` to walk, `←/→` or `Q/E` to turn. Eye height is 5'7". Point the crosshair at a door or piece of furniture and press **`F`** to use it; the prompt shows what will happen. |
 | **Plan** (`3`) | Top-down view. `M` toggles room sizes, wall dimensions and the area check against 676 sq ft. |
-| Anywhere | `C` cycles the storage cabinet A → B → C → none. `G` looks at it. `H` opens help. |
+| Anywhere | `C` cycles the storage cabinet A → B → C → D → none. `G` looks at it. `H` opens help. |
 
 The **Storage cabinet options** panel (bottom right) switches between the three products in place. It shows each one's size and finish, links to the listing, and has buttons to open its doors or frame it in view. `?cabinet=1|2|3` picks one from the URL.
 
@@ -37,7 +37,7 @@ Without a server, you can AirDrop `public/ar/cabinet-1.usdz` (or `-2`, `-3`, `ca
 Every real-world number lives in **`src/dimensions.js`**, in inches:
 
 - `FURNITURE.<piece>`: `w`, `d`, `h` plus detail sizes, `pos: [x, y]` (plan inches; x runs toward the kitchen side and y toward the deck) and `rot` in degrees. For example, change `FURNITURE.desk.w`, or move the wardrobe with `FURNITURE.wardrobe.pos`.
-- `CABINETS.rustic | pantry | beadboard`: the three cabinet options. `CABINETS.anchor` is where the slot sits.
+- `CABINETS.rustic | pantry | beadboard | steel`: the four cabinet options. `CABINETS.anchor` is where the slot sits.
 - `ENV`, `WALLS`, `ROOMS`, `DOORS`: the building. `DOORS.wdDoor.toggle` makes that door clickable.
 
 Dragged positions are not saved. **Reset furniture** puts everything back to `dimensions.js`.

@@ -39,7 +39,7 @@
 <body>
 <main>
   <h1>Storage cabinet: see it in your room</h1>
-  <p class="lead">Three options, built to their listed sizes. Open one on your iPhone and it appears on your floor at true scale.</p>
+  <p class="lead">Four options, built to their listed sizes. Open one on your iPhone and it appears on your floor at true scale.</p>
   <p class="note" id="unsupported" hidden>AR needs Safari on an iPhone or iPad. On this device, tapping a cabinet downloads its USDZ model instead.</p>
   <ol class="steps">
     <li>Tap a cabinet. The camera opens.</li>
@@ -53,7 +53,7 @@
 <script type="module">
 import { CABINETS, FURNITURE } from '/src/dimensions.js';
 
-const opts = [['rustic', 'A'], ['pantry', 'B'], ['beadboard', 'C']];
+const opts = [['rustic', 'A'], ['pantry', 'B'], ['beadboard', 'C'], ['steel', 'D']];
 // cache-buster written by `pnpm run export:ar`: Safari/Quick Look otherwise keeps showing a previously downloaded USDZ
 const v = await fetch('/ar/version.txt', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '0')).catch(() => '0');
 const cm = (inch) => Math.round(inch * 2.54);
@@ -76,10 +76,10 @@ for (const [i, [key, letter]] of opts.entries()) {
   const C = CABINETS[key];
   grid.append(card(`cabinet-${i + 1}`, letter, C.title,
     `<div class="dims">${C.w}″ W × ${C.d}″ D × ${C.h}″ H <small>(${cm(C.w)} × ${cm(C.d)} × ${cm(C.h)} cm)</small></div>
-     <div class="meta">${C.finish} · <a class="link" href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a></div>`));
+     <div class="meta">${C.finish}${C.url ? ` · <a class="link" href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a>` : ' · size assumed'}</div>`));
 }
-grid.append(card('cabinets-all', 'A · B · C', 'All three side by side',
-  '<div class="meta">8″ apart, left to right A, B, C. Handy for comparing height and width in one view.</div>', 'all'));
+grid.append(card('cabinets-all', 'A · B · C · D', 'All four side by side',
+  '<div class="meta">8″ apart, left to right A, B, C, D. Handy for comparing height and width in one view.</div>', 'all'));
 </script>
 </body>
 </html>

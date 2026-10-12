@@ -7,11 +7,13 @@ import { group } from '../lib/build.js';
 import * as rustic from './cabinets/rustic.js';
 import * as pantry from './cabinets/pantry.js';
 import * as beadboard from './cabinets/beadboard.js';
+import * as steel from './cabinets/steel.js';
 
 export const OPTIONS = [
   { key: 'rustic', letter: 'A', build: rustic.build },
   { key: 'pantry', letter: 'B', build: pantry.build },
   { key: 'beadboard', letter: 'C', build: beadboard.build },
+  { key: 'steel', letter: 'D', build: steel.build },
 ].map((o) => ({ ...o, info: CABINETS[o.key] }));
 
 export function build() {
