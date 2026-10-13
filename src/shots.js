@@ -45,6 +45,10 @@ export const SHOTS = {
   cabinet: { pos: [205, 250, 58], target: [300, 278, 36], vfov: 55, note: 'storage-cabinet option slot by the slider (add ?cabinet=1|2|3)' },
   shed: { pos: [215, 352, 60], target: [300, 337, 22], vfov: 60, note: 'deck storage shed (S end, against the privacy partition)' },
   shed2: { pos: [228, 240, 62], target: [296, 337, 24], vfov: 60, note: 'shed seen from the living room through the slider' },
+  // shoe closet (spruce_apt_photos/shoe-room/photo 4.jpeg): from the dining area, louvered W/D door on the left, entry door on the right wall
+  shoeCloset: { pos: [150, 52, 60], target: [100, 26, 42], vfov: UW_P, portrait: true, doors: { coatCloset: 'left' }, note: 'shoe closet, left half open (as photographed)' },
+  shoeClosetRight: { pos: [150, 52, 60], target: [100, 26, 42], vfov: UW_P, portrait: true, doors: { coatCloset: 'right' }, note: 'shoe closet, right half open' },
+  shoeRack: { pos: [170, 24, 42], target: [80, 24, 38], vfov: 48, portrait: true, hide: ['door:coatCloset', 'wall:hall-wall'], note: 'cutaway elevation of the shoe closet (front wall + doors hidden): rack, rod, shelf; add &rack=10 for the full-height rack' },
   // ---- overviews ----
   living: { pos: [160, 150, 64], target: [290, 290, 30], vfov: 75 },
   bedroom: { pos: [140, 165, 64], target: [30, 290, 25], vfov: 75 },

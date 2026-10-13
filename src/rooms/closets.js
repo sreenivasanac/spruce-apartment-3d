@@ -3,7 +3,7 @@
 // Name every significant mesh/group (obj.name) so tools/measure.mjs can find it.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { m, ENV, ROOMS, LAUNDRY as L, CLOSET as C } from '../dimensions.js';
+import { m, ENV, ROOMS, LAUNDRY as L, CLOSET as C, SHOE_CLOSET } from '../dimensions.js';
 import { MAT } from '../materials.js';
 import { box, boxAt, cyl, group, place } from '../lib/build.js';
 
@@ -40,7 +40,9 @@ function decal(w, h, draw, name) {
  * Local frame: X runs along the back wall from 0..len, Z = out from the back wall, Y = elevation.
  * rotDeg 0: back wall faces plan-down (+y), origin = plan-left end. rotDeg 90: back wall faces plan-right (+x), origin = plan-down end.
  */
-function shelfRod(name, x, y, rotDeg, len) {
+const CLOSET_DEFAULT = C;
+/** Shelf + rod run of length `len`; `C` (closet sizes) can be overridden per closet. */
+function shelfRod(name, x, y, rotDeg, len, C = CLOSET_DEFAULT) {
   const g = group(name);
   const under = C.shelfTop - C.shelfT, cl = C.cleat, rodY = under - C.rod.centreBelowShelf;
   g.add(at(rbox(len - 0.1, C.shelfT, C.shelfD, C.noseR, MAT.closetShelf, `${name}:shelf`), len / 2, under + C.shelfT / 2, C.shelfD / 2));
@@ -244,6 +246,7 @@ export function build() {
   const b = ROOMS.bedCloset.r, l = ROOMS.linen.r, c = ROOMS.coat.r;
   const bed = shelfRod('closets:bedroom', b[0], b[1], 0, b[2] - b[0]); // along x against the plan-up back wall
   const linen = shelfRod('closets:linen', l[0], l[3], 90, l[3] - l[1]); // along y against the plan-left back wall
-  const coat = shelfRod('closets:coat', c[0], c[3], 90, c[3] - c[1]);
+  const S = SHOE_CLOSET, shelfTop = S.rodElev + S.shelfAboveRod + C.shelfT; // shoe closet: rod + shelf heights from the user's tape measure
+  const coat = shelfRod('closets:coat', c[0], c[3], 90, c[3] - c[1], { ...C, shelfTop, rod: { ...C.rod, centreBelowShelf: shelfTop - C.shelfT - S.rodElev, out: S.rodOut } });
   return group('closets', bed, electricalPanel(), linen, coat, laundry());
 }

@@ -357,7 +357,7 @@ addEventListener('keydown', (e) => {
 });
 
 // ---------------------------------------------------------------- interaction: doors, coffee table, futon, wardrobe, cabinet
-const ACTION_DEFAULT = { shed: 'Open / close the storage shed', liftTop: 'Raise / lower the coffee-table top', futon: 'Fold the futon sofa ⇄ bed', wardrobe: 'Open / close the wardrobe doors' };
+const ACTION_DEFAULT = { shoeRack: 'Toggle the shoe rack 9 ⇄ 10 tiers', shed: 'Open / close the storage shed', liftTop: 'Raise / lower the coffee-table top', futon: 'Fold the futon sofa ⇄ bed', wardrobe: 'Open / close the wardrobe doors' };
 const actionLabel = (o) => o.userData.actionLabel ?? ACTION_DEFAULT[o.userData.key] ?? `Use the ${o.name}`;
 function use(o) {
   if (!o?.userData.onClick) return;
@@ -439,11 +439,13 @@ function applyShot(name) {
   persp.fov = s.vfov; persp.position.set(m(s.pos[0]), m(s.pos[2]), m(s.pos[1]));
   persp.lookAt(m(s.target[0]), m(s.target[2]), m(s.target[1]));
   for (const [id, deg] of Object.entries(s.doors ?? {})) { // the photos were taken with doors in different states (e.g. W/D door shut in IMG_3933)
+    if (typeof deg === 'string') { scene.getObjectByName(`door:${id}`)?.userData.setBypass?.(deg); continue; } // sliding doors: 'left' | 'right' | 'closed'
     const leaf = scene.getObjectByName(`door:${id}:leaf`);
     if (!leaf) continue;
     if (DOORS[id]?.openDeg) leaf.rotation.y *= deg / DOORS[id].openDeg; // keeps the module's swing direction
     else leaf.rotation.y = THREE.MathUtils.degToRad(deg); // door modelled shut: value is the signed leaf angle
   }
+  if (s.hide) scene.traverse((o) => { if (s.hide.some((p) => o.name.startsWith(p))) o.visible = false; }); // cutaway shots: hide objects by name prefix
   if (s.roll) persp.rotateZ(THREE.MathUtils.degToRad(s.roll)); // handheld photos are rarely level
   persp.updateProjectionMatrix();
 }

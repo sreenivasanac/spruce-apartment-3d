@@ -261,10 +261,27 @@ function bypassDoors(id, roomKey, mirror) {
   if (mirror) trim.push(boxAt(jT, -trackD / 2, floor, W - 2 * jT, trackD, M.botTrackH, MAT.trim));
   const zFront = f > 0 ? B.trackGap : -B.trackGap - pT, zRear = f > 0 ? -B.trackGap - pT : B.trackGap; // room-side / closet-side track
 
-  if (!mirror) { // two white slabs, closed, meeting with a small overlap; flush cup pulls at the outer edges
-    g.add(rboxAt(jT, zFront, e0, pw, pT, e1 - e0, MAT.door, `door:${id}:panelFront`), rboxAt(W - jT - pw, zRear, e0, pw, pT, e1 - e0, MAT.door, `door:${id}:panelRear`));
-    const cup = (x, z) => zCyl(B.pullR, 0.12, MAT.nickel, x, B.pullElev, z);
-    trim.push(cup(jT + B.pullInset, zFront + (f > 0 ? pT : 0) + f * 0.03), cup(W - jT - B.pullInset, zRear + (f > 0 ? pT : 0) + f * 0.03));
+  if (!mirror) { // two white slabs on a double top track, flush cup pulls at the outer edges; slide to open one half (DOORS[id].open)
+    const cupZ = (z) => z + (f > 0 ? pT : 0) + f * 0.03;
+    const slab = (x0, z0, name) => group(name, rboxAt(x0, z0, e0, pw, pT, e1 - e0, MAT.door, `${name}:slab`), zCyl(B.pullR, 0.12, MAT.nickel, x0 + (x0 < W / 2 ? B.pullInset : pw - B.pullInset), B.pullElev, cupZ(z0)));
+    const front = slab(jT, zFront, `door:${id}:panelFront`), rear = slab(W - jT - pw, zRear, `door:${id}:panelRear`);
+    g.add(front, rear);
+    // 'a'/'b' = which end of the opening stands open. Seen from the room side the 'b' end is on the viewer's left when f < 0.
+    const side = (v) => (v === 'closed' ? 'closed' : (v === 'left') === (f < 0) ? 'b' : 'a');
+    const shift = W - 2 * jT - pw, X = { closed: [0, 0], a: [shift, 0], b: [0, -shift] }; // [front, rear] offsets
+    const order = ['left', 'right', 'closed'], label = { left: 'left half open', right: 'right half open', closed: 'closed' };
+    let state = DOORS[id].open ?? 'closed', target = X[side(state)];
+    const apply = () => { front.position.x = m(target[0]); rear.position.x = m(target[1]); };
+    apply();
+    g.userData.setBypass = (v) => { state = v; target = X[side(v)]; apply(); g.userData.actionLabel = actionText(); }; // instant (shots)
+    const actionText = () => `Slide the ${DOORS[id].toggle ?? 'closet doors'} (now ${label[state]})`;
+    if (DOORS[id].toggle) {
+      g.userData.onClick = () => { state = order[(order.indexOf(state) + 1) % order.length]; target = X[side(state)]; g.userData.actionLabel = actionText(); };
+      front.userData.tick = (dt) => { // ease both panels toward their target along the track
+        for (const [p, t] of [[front, target[0]], [rear, target[1]]]) { const d = m(t) - p.position.x; p.position.x += Math.sign(d) * Math.min(Math.abs(d), dt * 0.9); }
+      };
+      g.userData.actionLabel = actionText();
+    }
   } else { // IMG_3937: both mirror panels parked at the 'b' (living-wall) end, the 'a' half of the closet standing open
     const panel = (x0, z0, name, reflect) => {
       const back = pT - 0.25, zb = f > 0 ? z0 : z0 + 0.25, p = group(name);

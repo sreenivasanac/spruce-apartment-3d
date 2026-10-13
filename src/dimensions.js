@@ -63,7 +63,7 @@ export const ROOMS = {
   bath: { r: [6, 6, 66, 66], label: 'Bath', floor: 'lvp' },
   vanity: { r: [6, 70.5, 28, 108], label: '', floor: 'lvp' },
   linen: { r: [6, 112.5, 34, 152], label: 'Closet', floor: 'lvp' },
-  coat: { r: [70.5, 6, 101, 50], label: 'Closet', floor: 'lvp' },
+  coat: { r: [74.5, 6, 101, 42], label: 'Shoe closet', floor: 'lvp' }, // user-measured 36" wide x 26.5" deep inside (2026-10-12)
   wd: { r: [70.5, 54.5, 101, 84.5], label: 'W/D', floor: 'lvp' },
   bedCloset: { r: [76, 132.5, 148, 156.5], label: 'Closet', floor: 'carpet' },
   deck: { r: [152.5, 307, 316.5, 373], label: 'Deck', floor: 'deck' },
@@ -88,11 +88,14 @@ export const WALLS = [
   { id: 'bath-s', tex: 'knockdown', axis: 'x', c: 66, t: 4.5, a: 6, b: 66, openings: [{ id: 'bathDoor', a: 39.5, b: 65.5, sill: 0, head: 80 }] }, // IMG_3937: leaf edge at x~41
   // coat closet / WD / hall-door wall (x = 101..105.5)
   { id: 'hall-wall', tex: 'knockdown', texSpan: { side: 'lo' }, axis: 'y', c: 101, t: 4.5, a: 6, b: 128, openings: [
-    { id: 'coatCloset', a: 8, b: 48, sill: 0, head: 80 },
+    { id: 'coatCloset', a: 8, b: 42, sill: 0, head: 80 }, // shoe closet: 34" opening (2" drywall return at the entry corner)
     { id: 'wdDoor', a: 55.5, b: 83.5, sill: 0, head: 80 },
     { id: 'bedDoor', a: 97.5, b: 125.5, sill: 0, head: 80 },
   ] },
   { id: 'coat-s', tex: 'knockdown', axis: 'x', c: 50, t: 4.5, a: 70.5, b: 101, openings: [] },
+  // shoe closet sized to the user's tape measurements (36" W x 26-27" D inside): furred-out back + a filled side bay, existing walls untouched
+  { id: 'coat-back', tex: 'knockdown', axis: 'y', c: 70.5, t: 4, a: 6, b: 50, openings: [] },
+  { id: 'coat-fill', tex: 'knockdown', axis: 'x', c: 42, t: 8, a: 74.5, b: 101, openings: [] },
   { id: 'wd-w', tex: 'knockdown', axis: 'y', c: 66, t: 4.5, a: 66, b: 89, openings: [] }, // W/D back wall (x 66..70.5), continues bath-e
   { id: 'wd-s', tex: 'knockdown', axis: 'x', c: 84.5, t: 4.5, a: 70.5, b: 101, openings: [] },
   // vanity / linen
@@ -119,7 +122,7 @@ export const DOORS = {
   bedDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'hall', openDeg: 88, type: 'slab' },
   wdDoor: { w: 28, wall: 'hall-wall', hinge: 'a', swingInto: 'dining', openDeg: 100, type: 'louver', toggle: 'washer/dryer door' }, // IMG_3945: hinged on the entry-side jamb, standing open
   linenDoor: { w: 24, wall: 'linen-front', hinge: 'b', swingInto: 'hall', openDeg: 0, type: 'slab' }, // IMG_3940/3941: lever on the vanity side
-  coatCloset: { w: 40, wall: 'hall-wall', type: 'bypass-slab' },
+  coatCloset: { w: 34, wall: 'hall-wall', type: 'bypass-slab', toggle: 'shoe-closet doors', open: 'left' }, // open: 'left' | 'right' | 'closed' as seen from the dining room; photos show 'left'
   bedClosetDoors: { w: 66, wall: 'bedcloset-front', type: 'bypass-mirror' },
 };
 
@@ -246,6 +249,9 @@ export const LAUNDRY = {
   cordLowElev: 30, washerBox: { w: 9, h: 7, d: 0.6, x: 72.5, elev: 17 }, hoseDia: 0.9, drainDia: 1.2,
 };
 // Closet shelf + rod (IMG_3938 bedroom closet, IMG_3940 linen): white painted shelf on wall cleats, natural pine rod below.
+// Shoe closet (spruce_apt_photos/shoe-room): rod 68" to its centre (user), shelf ~3.5" above it, rod ~12" off the back wall (estimates)
+export const SHOE_CLOSET = { rodElev: 68, shelfAboveRod: 3.25, rodOut: 12 };
+
 export const CLOSET = {
   shelfTop: 69, shelfD: 12, shelfT: 0.75, noseR: 0.25,
   cleat: { h: 3.5, t: 0.75 }, // 1x4 cleats on back + side walls; side cleats carry the rod sockets
@@ -384,6 +390,10 @@ export const FURNITURE = {
   shed: { w: 51.2, d: 29.1, h: 43.31, pos: [298.4, 337], rot: -90,
     door: { w: 43.1, h: 37.6 }, interior: { w: 46, d: 24.5, h: 38.9 }, // spec sheet (door pair overall; interior)
     baseH: 3, bodyInset: 0.8, wallT: 0.9, postW: 2.2, lidT: 1.5, lidLip: 1.8, lidOver: 0.6, backH: 40.6, plankPitch: 3.4, doorT: 1.2, handle: { h: 5.5, proj: 1.4 } }, // ~ from the listing/seller photos
+  // VACLIFE-style 10-tier metal shoe rack (spruce_apt_photos/shoe-rack-1): 32.2 W x 11.8 D x 68.5 H, shelves 6.7" apart (listing images).
+  // In the shoe closet, back against the furred back wall (0.6" baseboard stand-off), centred under the rod. Front faces the closet doors (+x).
+  shoeRack: { w: 32.2, d: 11.8, h: 68.5, pitch: 6.7, bottom: 1.6, tiersMax: 10, tiers: 9, post: 0.63, rail: 0.5, connH: 1.1, pairs: [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    pos: [74.5 + 0.6 + 0.15 + 11.8 / 2, 24], rot: 90 } // +0.15: the plastic feet stick out past the posts, // tiers: 9 fits under the rod; 10 (full height) clashes — click the rack to compare
 };
 
 // Sun (user-confirmed: deck faces WEST = +y). Golden hour as in the 6:20 PM photos.
