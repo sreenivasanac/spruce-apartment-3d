@@ -19,7 +19,7 @@ const cylG = (r, h, y0, seg = 24) => new THREE.CylinderGeometry(r, r, h, seg).tr
 function ribTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = 'rgba(120,120,116,0.94)'; ctx.fillRect(0, 0, 64, 64);
   ctx.fillStyle = 'rgb(176,175,170)';
   for (let i = 0; i < 4; i++) ctx.fillRect(0, i * 16 + 3, 64, 9);
@@ -32,7 +32,7 @@ function ribTexture() {
 function slotTexture(slot) {
   const c = document.createElement('canvas'), W = 64, H = 256, rowH = H / 3;
   c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#6a6a6c';
   const sw = (slot.w / slot.pitch) * W, sh = (slot.h / slot.rowH) * rowH;

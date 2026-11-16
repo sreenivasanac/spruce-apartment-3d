@@ -1,7 +1,7 @@
 {
   "name": "spruce_apartments-3d",
   "version": "1.0.0",
-  "description": "",
+  "description": "Walkable, to-scale Three.js model of a one-bedroom apartment with furniture planning and iPhone AR",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +11,7 @@
     "export:ar": "node tools/export-ar.mjs"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sreenivasan AC",
   "license": "ISC",
   "packageManager": "pnpm@10.30.1",
   "dependencies": {

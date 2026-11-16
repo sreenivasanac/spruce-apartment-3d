@@ -201,7 +201,7 @@ function tubShower() {
 
 function showerFaceMat() {
   const c = document.createElement('canvas'); c.width = c.height = 256;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#c9cbcc'; ctx.fillRect(0, 0, 256, 256);
   ctx.fillStyle = '#5d6063';
   for (let k = 1; k <= 5; k++) for (let i = 0; i < k * 7; i++) { // concentric nozzle rings

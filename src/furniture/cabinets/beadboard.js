@@ -15,7 +15,7 @@ function beadMat(wIn) {
   if (beadCache.has(n)) return beadCache.get(n);
   const s = 512, h = document.createElement('canvas'), col = document.createElement('canvas');
   h.width = h.height = col.width = col.height = s;
-  const hx = h.getContext('2d'), cx = col.getContext('2d');
+  const hx = h.getContext('2d', { willReadFrequently: true }), cx = col.getContext('2d', { willReadFrequently: true });
   hx.fillStyle = '#fff'; hx.fillRect(0, 0, s, s); cx.fillStyle = '#f2f1ec'; cx.fillRect(0, 0, s, s);
   for (let i = 1; i < n; i++) {
     const x = (i / n) * s, gw = Math.max(3, s / n * 0.09);

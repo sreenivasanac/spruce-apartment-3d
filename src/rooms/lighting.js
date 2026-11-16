@@ -23,7 +23,7 @@ const lens = (k) => Object.assign(MAT.lensLit.clone(), { emissive: new THREE.Col
 /** Additive gradient "light card" (w x h inches, in its own XY plane facing +Z): the soft spill a lit lens leaves on the surface it is mounted to. */
 function glowCard(w, h, color, k, stops, radial = true) {
   const c = document.createElement('canvas'); c.width = c.height = 128;
-  const ctx = c.getContext('2d'), grad = radial ? ctx.createRadialGradient(64, 64, 0, 64, 64, 64) : ctx.createLinearGradient(0, 0, 0, 128);
+  const ctx = c.getContext('2d', { willReadFrequently: true }), grad = radial ? ctx.createRadialGradient(64, 64, 0, 64, 64, 64) : ctx.createLinearGradient(0, 0, 0, 128);
   stops.forEach(([at, v]) => grad.addColorStop(at, `rgb(${v},${v},${v})`));
   ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 128);
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
@@ -195,7 +195,7 @@ function sunDir() {
 function foliageGobo(dir) {
   const dist = 12, spanU = 3.6, spanV = 2.8, W = 288, H = 224, K = 6; // metres / px; sun rays are parallel, so window + margin covers every ray that enters
   const r = rng(42), small = document.createElement('canvas'); small.width = W; small.height = H;
-  const ctx = small.getContext('2d');
+  const ctx = small.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); // white = blocked
   ctx.filter = 'blur(3px)'; // ponytail: browsers without canvas filter (Safari) get harder-edged dapple
   ctx.fillStyle = '#000';
@@ -211,7 +211,7 @@ function foliageGobo(dir) {
     ctx.beginPath(); ctx.ellipse(r() * W, r() * H, 2 + r() * 6, 1 + r() * 2.5, r() * Math.PI, 0, Math.PI * 2); ctx.fill();
   }
   const src = ctx.getImageData(0, 0, W, H).data, big = document.createElement('canvas'); big.width = W * K; big.height = H * K;
-  const bctx = big.getContext('2d'), out = bctx.createImageData(W * K, H * K), d = out.data;
+  const bctx = big.getContext('2d', { willReadFrequently: true }), out = bctx.createImageData(W * K, H * K), d = out.data;
   for (let y = 0; y < H * K; y++) for (let x = 0; x < W * K; x++) {
     // bilinear sample of the blurred map, then 1-bit noise dither
     const fx = Math.min(x / K, W - 1.001), fy = Math.min(y / K, H - 1.001), x0 = fx | 0, y0 = fy | 0, tx = fx - x0, ty = fy - y0;

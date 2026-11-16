@@ -1,4 +1,6 @@
 // Shared PBR materials. All textures are procedural (canvas) — no external assets.
+// Every procedural 2D canvas is created with { willReadFrequently: true } so Chrome keeps it in CPU memory: dozens of
+// GPU-backed texture canvases exhaust the GPU budget and Chrome 156 drops the WebGL context mid-load (blank/black render).
 // Colors sampled from the reference photos (see docs/spec.md "Material schedule").
 import * as THREE from 'three';
 import { FINISHES } from './dimensions.js';
@@ -6,7 +8,7 @@ import { FINISHES } from './dimensions.js';
 function canvasTex(size, draw, { repeat = [1, 1], srgb = true } = {}) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  draw(c.getContext('2d'), size);
+  draw(c.getContext('2d', { willReadFrequently: true }), size);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(...repeat);
@@ -40,7 +42,7 @@ function noise(ctx, s, base, amp, seed, grain = 1) {
 // lockstep so joints, embossed grain and scuffs register with each other.
 function lvpMaps() {
   const S = 2048, rows = L.tile / L.plankW, ph = S / rows, pl = S * L.plankL / L.tile;
-  const mk = (size) => { const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'); x.translate(size, 0); x.rotate(Math.PI / 2); x.scale(size / S, size / S); return x; };
+  const mk = (size) => { const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d', { willReadFrequently: true }); x.translate(size, 0); x.rotate(Math.PI / 2); x.scale(size / S, size / S); return x; };
   const col = mk(2048), rough = mk(1024), bump = mk(1024), all = [col, rough, bump];
   bump.fillStyle = '#808080'; bump.fillRect(0, 0, S, S);
   const plank = (x0, y0, seed) => {
@@ -126,7 +128,7 @@ function carpetMaps() {
 function plateMat(kind) {
   const P = 64, F = FINISHES.plate, wIn = kind === 'rocker2' ? F.w2 : F.w, W = Math.round(wIn * P), H = Math.round(F.h * P);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const x = c.getContext('2d'), cy = H / 2, I = (v) => v * P;
+  const x = c.getContext('2d', { willReadFrequently: true }), cy = H / 2, I = (v) => v * P;
   const rr = (cx, y0, w, h, rad) => { x.beginPath(); x.roundRect(cx - I(w) / 2, y0 - I(h) / 2, I(w), I(h), I(rad)); };
   const dot = (cx, y0, rad, fill) => { x.beginPath(); x.arc(cx, y0, I(rad), 0, 7); x.fillStyle = fill; x.fill(); };
   const screw = (cx, y0) => { dot(cx, y0, 0.095, '#dcdad3'); x.strokeStyle = '#8f8d86'; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, y0, I(0.095), 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx - I(0.07), y0 + 1); x.lineTo(cx + I(0.07), y0 - 1); x.stroke(); };

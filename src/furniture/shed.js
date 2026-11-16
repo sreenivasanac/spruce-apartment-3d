@@ -19,7 +19,7 @@ function plankMat(hIn, color = GRAY, key = '') {
   if (plankCache.has(id)) return plankCache.get(id);
   const s = 512, col = document.createElement('canvas'), h = document.createElement('canvas');
   col.width = col.height = h.width = h.height = s;
-  const cx = col.getContext('2d'), hx = h.getContext('2d'), r = rng(17 + n);
+  const cx = col.getContext('2d', { willReadFrequently: true }), hx = h.getContext('2d', { willReadFrequently: true }), r = rng(17 + n);
   cx.fillStyle = '#fff'; cx.fillRect(0, 0, s, s); hx.fillStyle = '#fff'; hx.fillRect(0, 0, s, s);
   for (let i = 0; i < 900; i++) { // grain streaks along the planks
     const y = r() * s, x = r() * s, l = 20 + r() * 120, a = 0.04 + r() * 0.07;

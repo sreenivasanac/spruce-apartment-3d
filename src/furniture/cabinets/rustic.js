@@ -12,7 +12,7 @@ function woodMat(horizontal, seed = 31) {
   let c = woodCanvas({ ...OAK, seed });
   if (horizontal) { // grain along U: draw the canvas rotated 90°
     const r = document.createElement('canvas'); r.width = r.height = c.width;
-    const x = r.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); c = r;
+    const x = r.getContext('2d', { willReadFrequently: true }); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); c = r;
   }
   return std({ map: canvasTexture(c), roughness: 0.62, name: `rustic-oak${horizontal ? '-h' : ''}` });
 }
@@ -28,7 +28,7 @@ function makeCarved(wIn, hIn) {
   const px = 44, W = Math.round(wIn * px), H = Math.round(hIn * px);
   const col = document.createElement('canvas'); col.width = W; col.height = H;
   const hgt = document.createElement('canvas'); hgt.width = hgt.height = 512;
-  const cx = col.getContext('2d'), hx = hgt.getContext('2d');
+  const cx = col.getContext('2d', { willReadFrequently: true }), hx = hgt.getContext('2d', { willReadFrequently: true });
   cx.drawImage(woodCanvas({ ...OAK, seed: 37 }), 0, 0, W, H);
   hx.fillStyle = '#fff'; hx.fillRect(0, 0, 512, 512);
   const cell = 2.15, cols = Math.max(3, Math.round(wIn / cell)), cw = W / cols, rows = Math.round(hIn / (cell * 0.92)), ch = H / rows;

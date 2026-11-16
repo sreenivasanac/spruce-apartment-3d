@@ -22,7 +22,7 @@ const UP_SLAB_T = F2F - D.floorDrop - D.soffitElev; // balcony slab of the unit 
 function canvasTex(size, draw, { repeat = [1, 1], srgb = true, wrap = true } = {}) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  draw(c.getContext('2d'), size);
+  draw(c.getContext('2d', { willReadFrequently: true }), size);
   const t = new THREE.CanvasTexture(c);
   if (wrap) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(...repeat);

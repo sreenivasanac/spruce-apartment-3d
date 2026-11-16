@@ -15,7 +15,7 @@ const TAU = Math.PI * 2;
 function tileTex(pxW, pxH, tileW, tileH, draw) {
   const c = document.createElement('canvas');
   c.width = pxW; c.height = pxH;
-  draw(c.getContext('2d'), pxW, pxH);
+  draw(c.getContext('2d', { willReadFrequently: true }), pxW, pxH);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(1 / m(tileW), 1 / m(tileH));

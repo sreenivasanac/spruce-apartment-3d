@@ -16,7 +16,7 @@ export function build() {
   // light-oak laminate top, grain running along the 63" length (texture rotated so grain follows U)
   const src = woodCanvas({ seed: 63, dark: [168, 128, 86], mid: [208, 172, 128], hi: [226, 198, 158], lines: 34, contrast: 0.45, wobble: 0.35 });
   const rot = document.createElement('canvas'); rot.width = rot.height = src.width;
-  const rx = rot.getContext('2d'); rx.translate(src.width, 0); rx.rotate(Math.PI / 2); rx.drawImage(src, 0, 0);
+  const rx = rot.getContext('2d', { willReadFrequently: true }); rx.translate(src.width, 0); rx.rotate(Math.PI / 2); rx.drawImage(src, 0, 0);
   const oak = std({ map: canvasTexture(rot), roughness: 0.55, name: 'desk-light-oak' });
   const top = panel(D.w, D.topT, D.d, oak, 'desk:top', 0, under + D.topT / 2, 0, D.edgeR);
 

@@ -43,7 +43,7 @@ function roundRect(path, x, y, w, h, r) {
 }
 function canvasMap(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
-  draw(c.getContext('2d'), w, h);
+  draw(c.getContext('2d', { willReadFrequently: true }), w, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return t;
 }

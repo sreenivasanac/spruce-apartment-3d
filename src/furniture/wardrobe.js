@@ -40,7 +40,7 @@ const mesh = (g, mat, name, shadow = true) => {
 /** Tiny tiling canvas texture (procedural only). */
 function canvasTex(size, draw, repeat) {
   const c = document.createElement('canvas'); c.width = c.height = size;
-  draw(c.getContext('2d'), size);
+  draw(c.getContext('2d', { willReadFrequently: true }), size);
   const tx = new THREE.CanvasTexture(c);
   tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(...repeat); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8;
   return tx;

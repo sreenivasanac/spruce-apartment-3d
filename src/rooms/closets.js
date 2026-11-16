@@ -27,7 +27,7 @@ function tube(pts, dia, mat, name, radial = 10) {
 /** Small canvas-textured decal plane (fascias, sticker). draw(ctx, w, h) works in pixels. */
 function decal(w, h, draw, name) {
   const c = document.createElement('canvas'); c.width = 1024; c.height = Math.round((1024 * h) / w);
-  draw(c.getContext('2d'), c.width, c.height);
+  draw(c.getContext('2d', { willReadFrequently: true }), c.width, c.height);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   const o = new THREE.Mesh(new THREE.PlaneGeometry(m(w), m(h)), new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.35, clearcoat: 0.4, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
   o.receiveShadow = true; o.name = name;
@@ -139,7 +139,7 @@ function cabinet(w, h, d, e, portY, portR, name) {
 /** Perforated drum back (dryer) — dot grid at the real pitch, darker toward the rim; also used as emissive map because the cavity is fully shadowed. */
 function drumBackMat(dia) {
   const c = document.createElement('canvas'); c.width = c.height = 512;
-  const ctx = c.getContext('2d'), s = 512, step = (L.drum.perfPitch / dia) * s;
+  const ctx = c.getContext('2d', { willReadFrequently: true }), s = 512, step = (L.drum.perfPitch / dia) * s;
   const gr = ctx.createRadialGradient(s / 2, s / 2, s * 0.1, s / 2, s / 2, s / 2); gr.addColorStop(0, '#8e9194'); gr.addColorStop(0.75, '#707376'); gr.addColorStop(1, '#2c2e30');
   ctx.fillStyle = gr; ctx.fillRect(0, 0, s, s);
   ctx.fillStyle = '#101112'; for (let j = 0, y = step / 2; y < s; y += step * 0.866, j++) for (let x = (j % 2) * step / 2; x < s; x += step) { ctx.beginPath(); ctx.arc(x, y, step * 0.24, 0, 7); ctx.fill(); }

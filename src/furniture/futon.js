@@ -19,7 +19,7 @@ const RAD = Math.PI / 180;
 /** Heathered linen weave; tile = D.linenTile inches (UVs below are in tiles). kind: 'color' | 'bump'. */
 function linenTex(kind) {
   const c = document.createElement('canvas'); c.width = c.height = 512;
-  const ctx = c.getContext('2d'), r = rng(21), s = 512;
+  const ctx = c.getContext('2d', { willReadFrequently: true }), r = rng(21), s = 512;
   ctx.fillStyle = kind === 'color' ? '#3d4046' : '#808080'; ctx.fillRect(0, 0, s, s);
   for (let i = 0; i < 14000; i++) { // short warp/weft slubs, light and dark — same cool-neutral hue as the base, nothing brighter than ~#5a5e66
     const light = r() < 0.5, a = 0.05 + r() * 0.13, len = 6 + r() * 34, x = r() * s, y = r() * s, horiz = r() < 0.5;
@@ -35,7 +35,7 @@ function linenTex(kind) {
 /** Top-stitch thread: 8 dashes per tile (thread / fabric gap); mip-maps average it to a fine lighter line at a distance. */
 function stitchTex() {
   const c = document.createElement('canvas'); c.width = 64; c.height = 4;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#34373c'; ctx.fillRect(0, 0, 64, 4);
   ctx.fillStyle = `#${D.stitch.color.toString(16).padStart(6, '0')}`; for (let i = 0; i < 8; i++) ctx.fillRect(i * 8, 0, 5, 4);
   const t = new THREE.CanvasTexture(c);

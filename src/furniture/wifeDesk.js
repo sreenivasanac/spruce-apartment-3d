@@ -42,7 +42,7 @@ export function build() {
   const underTop = D.h - D.topT;
   // paper-foil micro texture: faint roughness mottling so the big white planes don't read as a flat CG slab
   const c = document.createElement('canvas'); c.width = c.height = 256;
-  const ctx = c.getContext('2d'), img = ctx.createImageData(256, 256), r = rng(47);
+  const ctx = c.getContext('2d', { willReadFrequently: true }), img = ctx.createImageData(256, 256), r = rng(47);
   for (let i = 0; i < img.data.length; i += 4) { const v = 150 + r() * 70; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
   ctx.putImageData(img, 0, 0);
   const foil = new THREE.CanvasTexture(c); foil.wrapS = foil.wrapT = THREE.RepeatWrapping; foil.repeat.set(3, 3);

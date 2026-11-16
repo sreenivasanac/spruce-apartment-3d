@@ -14,7 +14,7 @@ export function woodCanvas(o) {
   const waves = Array.from({ length: 6 }, () => [1 + (r() * 3 | 0), (r() * 3 | 0) - 1, r() * TAU, 0.4 + r() * 0.6]);
   const warp = (u, v) => waves.reduce((a, [fu, fv, ph, amp]) => a + amp * Math.sin(TAU * (fu * v + fv * u) + ph), 0) / waves.length;
   const c = document.createElement('canvas'); c.width = c.height = s;
-  const ctx = c.getContext('2d'), img = ctx.createImageData(s, s);
+  const ctx = c.getContext('2d', { willReadFrequently: true }), img = ctx.createImageData(s, s);
   for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
     const u = x / s, v = y / s, f = lines * u + wobble * warp(u, v), t = f - Math.floor(f);
     let k = t < 0.12 ? t / 0.12 : 1 - 0.7 * ((t - 0.12) / 0.88) ** 0.8; // sharp late-wood line, slow early-wood fade
@@ -42,9 +42,9 @@ export function canvasTexture(canvas, srgb = true) {
 
 /** Tangent-space normal map from a grayscale height canvas (Sobel), strength in "pixels of slope". */
 export function normalFromHeight(src, strength = 2) {
-  const s = src.width, h = src.getContext('2d').getImageData(0, 0, s, s).data;
+  const s = src.width, h = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
   const c = document.createElement('canvas'); c.width = c.height = s;
-  const ctx = c.getContext('2d'), out = ctx.createImageData(s, s);
+  const ctx = c.getContext('2d', { willReadFrequently: true }), out = ctx.createImageData(s, s);
   const H = (x, y) => h[4 * (((y + s) % s) * s + ((x + s) % s))] / 255;
   for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
     const dx = (H(x + 1, y) - H(x - 1, y)) * strength, dy = (H(x, y + 1) - H(x, y - 1)) * strength;

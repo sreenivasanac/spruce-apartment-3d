@@ -38,7 +38,7 @@ function instanced(geo, pts, mat, name) {
 /** Tiling grayscale bump texture from a height function fn(u, v) -> 0..1. */
 function bumpTex(fn, size = 128) {
   const c = document.createElement('canvas'); c.width = c.height = size;
-  const ctx = c.getContext('2d'), img = ctx.createImageData(size, size);
+  const ctx = c.getContext('2d', { willReadFrequently: true }), img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const s = 255 * fn(x / size, y / size);
     img.data.set([s, s, s, 255], (y * size + x) * 4);

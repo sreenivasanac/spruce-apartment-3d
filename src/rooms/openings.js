@@ -239,7 +239,7 @@ function entrySidePanel(W, t) {
   parts.push(rectFrame(x0, x0 + P.w, 0, P.h, z1 - C.t, z1 - C.t + raise, { l: P.stile, r: P.stile, t: P.stile, b: P.stile }, MAT.corridorTrim));
   parts.push(rboxAt(x0 + P.stile, z1 - C.t, P.midRail, P.w - 2 * P.stile, raise, P.stile, MAT.corridorTrim));
   const c = document.createElement('canvas'); c.width = c.height = 128;
-  const ctx = c.getContext('2d'); ctx.fillStyle = '#0c0c0d'; ctx.fillRect(0, 0, 128, 128);
+  const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.fillStyle = '#0c0c0d'; ctx.fillRect(0, 0, 128, 128);
   ctx.fillStyle = '#f2f2f0'; ctx.font = '600 34px Helvetica, Arial, sans-serif'; ctx.fillText('113', 12, 42); // A9: plaque reads 113
   const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace;
   const face = new THREE.MeshStandardMaterial({ map, roughness: 0.35, name: 'unit-plaque' });
