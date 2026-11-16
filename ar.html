@@ -55,7 +55,7 @@ import { CABINETS, FURNITURE } from '/src/dimensions.js';
 
 const opts = [['rustic', 'A'], ['pantry', 'B'], ['beadboard', 'C'], ['steel', 'D']];
 // cache-buster written by `pnpm run export:ar`: Safari/Quick Look otherwise keeps showing a previously downloaded USDZ
-const v = await fetch('/ar/version.txt', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '0')).catch(() => '0');
+const v = await fetch('ar/version.txt', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '0')).catch(() => '0');
 const cm = (inch) => Math.round(inch * 2.54);
 const arSupported = document.createElement('a').relList.supports('ar');
 document.getElementById('unsupported').hidden = arSupported;
@@ -67,8 +67,8 @@ const grid = document.getElementById('grid');
 const card = (file, badge, title, lines, cls = '') => {
   const el = document.createElement('article'); el.className = `card ${cls}`;
   // AR Quick Look requires the <a rel="ar"> to wrap exactly one <img>; the button is a plain link, which Safari also opens in Quick Look
-  el.innerHTML = `<a rel="ar" href="/ar/${file}.usdz?v=${v.trim()}#allowsContentScaling=0" aria-label="View ${title} in AR"><img src="/ar/${file}.jpg?v=${v.trim()}" alt="${title}" loading="lazy"></a>
-    <div class="body"><h2>${badge} · ${title}</h2>${lines}<div class="cta"><a class="btn" href="/ar/${file}.usdz?v=${v.trim()}#allowsContentScaling=0">View in my room</a></div></div>`;
+  el.innerHTML = `<a rel="ar" href="ar/${file}.usdz?v=${v.trim()}#allowsContentScaling=0" aria-label="View ${title} in AR"><img src="ar/${file}.jpg?v=${v.trim()}" alt="${title}" loading="lazy"></a>
+    <div class="body"><h2>${badge} · ${title}</h2>${lines}<div class="cta"><a class="btn" href="ar/${file}.usdz?v=${v.trim()}#allowsContentScaling=0">View in my room</a></div></div>`;
   const tag = document.createElement('span'); tag.className = 'badge'; tag.textContent = badge; el.querySelector('a').append(tag);
   return el;
 };

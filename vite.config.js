@@ -10,7 +10,9 @@ const usdzMime = (server) => {
 }; // (no return value: a returned function would be treated as a post-middleware hook)
 
 // Two pages: the 3D apartment (index.html) and the phone AR cabinet viewer (ar.html).
+// base './': relative asset URLs, so the build works at a domain root or under any sub-path.
 export default defineConfig({
+  base: './',
   plugins: [{ name: 'usdz-mime', configureServer: usdzMime, configurePreviewServer: usdzMime }],
   build: { rollupOptions: { input: { main: resolve(import.meta.dirname, 'index.html'), ar: resolve(import.meta.dirname, 'ar.html') } } },
 });
