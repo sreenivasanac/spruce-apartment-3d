@@ -44,7 +44,8 @@ try {
     console.log(JSON.stringify(await page.evaluate(opt('eval')), null, 1));
   } else if (has('fps')) {
     const page = await open('?view=dollhouse&clean');
-    const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => (++n, performance.now() - t0 < 3000 ? requestAnimationFrame(f) : res(n / 3)); requestAnimationFrame(f); }));
+    const fps = await page.evaluate(() => new Promise((res) => { window.__apt.invalidate(4000); let n = 0; // rendering is on demand: ask for frames during the measurement
+       const t0 = performance.now(); const f = () => (++n, performance.now() - t0 < 3000 ? requestAnimationFrame(f) : res(n / 3)); requestAnimationFrame(f); }));
     const t = await page.evaluate(() => performance.getEntriesByType('navigation')[0].loadEventEnd);
     console.log(JSON.stringify({ fps: Math.round(fps), loadMs: Math.round(t), ...(await page.evaluate('__apt.stats()')) }));
   } else if (has('view')) {

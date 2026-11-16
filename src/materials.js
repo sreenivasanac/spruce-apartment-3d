@@ -98,16 +98,21 @@ function orangePeelMap() {
 }
 
 // Knock-down drywall texture (height map): flattened splatter islands ~1/4"-3/4" across with flat tops (IMG_3945/3940/3946).
+// The islands are drawn sharp on a scratch canvas and blurred ONCE: a canvas filter applies per draw call, and 4,500
+// individually blurred ellipses took Chrome 23 s to rasterize (it was the whole page-load time).
 function knockdownMap() {
   return canvasTex(1024, (ctx, s) => {
     const r = rng(15), px = s / FINISHES.wallTextureTile;
-    ctx.fillStyle = '#585858'; ctx.fillRect(0, 0, s, s);
-    ctx.filter = 'blur(2px)'; ctx.fillStyle = '#9c9c9c';
+    const tmp = document.createElement('canvas'); tmp.width = tmp.height = s;
+    const t = tmp.getContext('2d', { willReadFrequently: true }); t.fillStyle = '#9c9c9c';
     for (let i = 0; i < 1500; i++) { // each island = 3 overlapping lobes -> irregular outline
       const cx = r() * s, cy = r() * s, R = (0.12 + r() * 0.26) * px;
       for (let k = 0; k < 3; k++) { const ox = (r() - 0.5) * R * 1.4, oy = (r() - 0.5) * R * 1.4, rx = R * (0.5 + r() * 0.6), ry = R * (0.4 + r() * 0.5), rot = r() * 3;
-        wrapped(s, cx + ox, cy + oy, R * 2, (x, y) => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, 7); ctx.fill(); }); }
+        wrapped(s, cx + ox, cy + oy, R * 2, (x, y) => { t.beginPath(); t.ellipse(x, y, rx, ry, rot, 0, 7); t.fill(); }); }
     }
+    ctx.fillStyle = '#585858'; ctx.fillRect(0, 0, s, s);
+    ctx.filter = 'blur(2px)';
+    for (const dx of [0, -s, s]) for (const dy of [0, -s, s]) ctx.drawImage(tmp, dx, dy); // neighbour copies supply the blur that spills across the tile edge
     ctx.filter = 'none';
   }, { srgb: false });
 }

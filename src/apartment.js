@@ -10,8 +10,11 @@ const FURN_MODS = import.meta.glob('./furniture/*.js');
 const ROOM_ORDER = ['finishes', 'openings', 'deck', 'kitchen', 'bathroom', 'closets', 'lighting']; // lighting last
 
 export const failed = [];
+export const timings = {}; // ms spent building each module (window.__apt.timings), for load-time profiling
 async function load(mods, path, ctx) {
+  const t = performance.now();
   try { return (await mods[path]()).build(ctx); } catch (e) { failed.push(`${path}: ${e.message}`); console.warn(`[module failed] ${path}`, e); return null; }
+  finally { timings[path] = Math.round(performance.now() - t); }
 }
 
 export async function buildApartment(ctx) {

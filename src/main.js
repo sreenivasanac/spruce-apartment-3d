@@ -1,4 +1,8 @@
-// Viewer: renderer + post, three view modes (dollhouse / walk / plan), furniture drag, plan dimension overlay, ?shot= poses.
+// Viewer: renderer + post, three view modes (dollhouse / walk / plan), furniture drag, ?shot= poses.
+// Feature UI lives in src/viewer/* (plan overlay, cabinet panel, info card, tape measure, lights, tour); each gets the
+// viewer context `V` defined below.
+// Rendering is ON DEMAND: a frame is drawn only after input, while something animates, or while the camera moves.
+// Shadow maps are static and re-rendered only when something that casts a shadow has moved (see shadowsDirty()).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
@@ -6,12 +10,19 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { ENV, ROOMS, WALLS, DOORS, FURNITURE, floorAt, m, IN } from './dimensions.js';
-import { buildApartment, failed } from './apartment.js';
+import { buildApartment, failed, timings } from './apartment.js';
 import { wallColliders, areaReport } from './shell.js';
+import { MAT } from './materials.js';
 import { sizeInches, place } from './lib/build.js';
 import { SHOTS } from './shots.js';
+import { createPlanOverlay } from './viewer/planOverlay.js';
+import { createCabinetPanel } from './viewer/cabinetPanel.js';
+import { createLightsPanel } from './viewer/lightsPanel.js';
+import { createInfo } from './viewer/info.js';
+import { createMeasure } from './viewer/measure.js';
+import { createTour } from './viewer/tour.js';
 
 // ---------------------------------------------------------------- viewer tuning (not real-world sizes)
 const VIEW = {
@@ -19,11 +30,14 @@ const VIEW = {
   walkSpeed: 1.3, // m/s, a stroll
   turnSpeed: 1.6, // rad/s for keyboard turning in walk mode
   bodyR: 8, // walker half-width, inches (16" body passes the 26" bath door)
-  walkStart: [125, 34], walkLook: [200, 300], walkFov: 72,
+  walkStart: [150, 44], walkLook: [205, 290], walkFov: 72, // inside the entry, past the open washer/dryer door, facing the living room
   dollFov: 42, dollPos: [300, 590, 530], // plan x, elevation, plan y (inches): from above the deck/SW corner
   planMargin: 44, // inches of paper around envelope + deck in plan view
   nudge: 1, nudgeBig: 6, // keyboard furniture nudge, inches
   highlight: 0xffb020,
+  settleMs: 250, // keep rendering this long after the last input, so damping and hover states finish
+  animMs: 3000, // longest open/close animation (staggered cabinet doors); frames + shadows refresh for this long after a click
+  mirrorRange: 5, // metres: planar mirror reflections are only re-rendered when the walker is this close
 };
 
 const params = new URLSearchParams(location.search);
@@ -31,11 +45,20 @@ const shotName = params.get('shot');
 const app = document.getElementById('app');
 const $ = (id) => document.getElementById(id);
 
+// Quality tier. Phones and tablets (coarse pointer) get a lighter setup; they are view-only (no Walk, no furniture drag).
+const TOUCH = matchMedia('(pointer: coarse)').matches && !shotName;
+const QUALITY = TOUCH
+  ? { maxDpr: 1.5, sunMap: 2048, mirrors: false }
+  : { maxDpr: 2, sunMap: 4096, mirrors: true };
+const AO_SCALE = 0.5; // ambient occlusion is low-frequency: on HiDPI screens it is computed at half resolution
+document.body.classList.toggle('touch', TOUCH);
+
 // ---------------------------------------------------------------- renderer + post
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: !!shotName });
-renderer.setPixelRatio(shotName ? 1 : Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(shotName ? 1 : Math.min(devicePixelRatio, QUALITY.maxDpr));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false; // static shadows: see shadowsDirty()
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -46,22 +69,21 @@ Object.assign(labels.domElement.style, { position: 'absolute', inset: '0', point
 app.appendChild(labels.domElement);
 
 const scene = new THREE.Scene();
+const labelScene = new THREE.Scene(); // CSS2D labels only (room names, size tags, tape readout): cheap to traverse every frame
 const persp = new THREE.PerspectiveCamera(60, 1, 0.05, 300);
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 let camera = persp;
 
+const tBuild = performance.now();
 const { root, shell, furniture } = await buildApartment({ scene, renderer });
+timings.build = Math.round(performance.now() - tBuild);
 scene.add(root);
 const deckR = ROOMS.deck.r;
 const center = new THREE.Vector3(m(ENV.w / 2), 0, m(ENV.d / 2 + 20)); // orbit pivot, nudged toward the deck
 const planCenter = new THREE.Vector3(m(ENV.w / 2), 0, m(deckR[3] / 2)); // envelope + deck
-
-// The lighting module owns the look; apply its exposure / IBL strength if it exports them (guarded: it may be mid-edit).
-try {
-  const { RENDER } = await Object.values(import.meta.glob('./rooms/lighting.js'))[0]();
-  if (RENDER?.exposure) renderer.toneMappingExposure = RENDER.exposure;
-  if (RENDER?.envIntensity != null) scene.environmentIntensity = RENDER.envIntensity;
-} catch { /* already reported by apartment.js */ }
+const lightingGroup = scene.getObjectByName('lighting');
+const sun = scene.getObjectByName('sun');
+if (sun) sun.shadow.mapSize.setScalar(QUALITY.sunMap);
 
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
@@ -70,97 +92,84 @@ gtao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.5, thickness: 1.2, s
 composer.addPass(renderPass); composer.addPass(gtao); composer.addPass(new OutputPass());
 
 function resize() {
-  const w = innerWidth, h = innerHeight, a = w / h;
+  const w = innerWidth, h = innerHeight, a = w / h, pr = renderer.getPixelRatio();
   renderer.setSize(w, h); composer.setSize(w, h); labels.setSize(w, h);
+  if (pr > 1.25) gtao.setSize(Math.round(w * pr * AO_SCALE), Math.round(h * pr * AO_SCALE));
   persp.aspect = a; persp.updateProjectionMatrix();
   // plan view fits envelope + deck + margin in both directions
   const span = Math.max(m(deckR[3] + 2 * VIEW.planMargin) / 2, m(ENV.w + 2 * VIEW.planMargin) / 2 / a);
   Object.assign(ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); ortho.updateProjectionMatrix();
+  invalidate();
 }
 addEventListener('resize', resize);
 
-// ---------------------------------------------------------------- plan overlay: room labels (CSS2D) + dimension lines with ticks (SVG)
-const overlay = new THREE.Group(); overlay.visible = false; scene.add(overlay);
-function label(text, x, y, cls = 'dim') {
-  const el = document.createElement('div'); el.className = cls; el.textContent = text;
-  const o = new CSS2DObject(el); o.position.set(m(x), m(ENV.ceiling), m(y)); overlay.add(o);
-}
-/** 316.5 -> 26'4½" (nearest half inch, no 12" roll-over). */
-function ftin(inch) {
-  const h = Math.round(inch * 2) / 2, ft = Math.floor(h / 12), i = h - ft * 12;
-  return `${ft}'${Math.floor(i)}${i % 1 ? '½' : ''}"`;
-}
-const area = areaReport();
-const BIG = 25; // sq ft: rooms at least this big get dimension lines, smaller ones get W × D in the label
-const dims = []; // { a:[x,y], b:[x,y], off, text } — measured points, perpendicular offset of the dim line (inches)
-for (const [key, r] of Object.entries(ROOMS)) {
-  if (!r.label) continue;
-  const [x0, y0, x1, y1] = r.r, name = r.label.split(' ')[0], big = area.rooms[key] >= BIG;
-  label(big ? `${name} · ${Math.round(area.rooms[key])} sq ft` : `${name} ${ftin(x1 - x0)} × ${ftin(y1 - y0)}`, (x0 + x1) / 2, (y0 + y1) / 2);
-  if (!big) continue;
-  const inset = Math.min(30, (y1 - y0) / 4);
-  dims.push({ a: [x0, y1 - inset], b: [x1, y1 - inset], off: 0, text: ftin(x1 - x0) });
-  dims.push({ a: [x0 + inset, y0], b: [x0 + inset, y1], off: 0, text: ftin(y1 - y0) });
-}
-dims.push({ a: [0, 0], b: [ENV.w, 0], off: -16, text: `${ftin(ENV.w)} overall` });
-dims.push({ a: [0, 0], b: [0, ENV.d], off: -16, text: `${ftin(ENV.d)} overall` });
-for (const o of WALLS.find((w) => w.id === 'ext-west').openings) // slider + bedroom window widths, outside the deck-side wall
-  dims.push({ a: [o.a, ENV.d], b: [o.b, ENV.d], off: o.id === 'slider' ? -10 : 14, text: `${o.id === 'slider' ? 'slider' : 'window'} ${ftin(o.b - o.a)}` });
-const pct = ((area.grossSqFt / VIEW.listingSqFt - 1) * 100).toFixed(1);
-label(`Gross ${ftin(ENV.w)} × ${ftin(ENV.d)} = ${area.grossSqFt} sq ft · listing ${VIEW.listingSqFt} sq ft (${pct > 0 ? '+' : ''}${pct}%) · deck excluded`, ENV.w / 2, -32, 'dim total');
+// ---------------------------------------------------------------- on-demand rendering + static shadows
+let renderUntil = 0, animUntil = 0, shadowStale = true;
+/** Ask for frames for the next `ms` milliseconds. */
+function invalidate(ms = VIEW.settleMs) { renderUntil = Math.max(renderUntil, performance.now() + ms); }
+/** Something that casts a shadow moved or changed: refresh the shadow maps on the next frame. */
+function shadowsDirty() { shadowStale = true; invalidate(); }
+/** An open/close animation was started: keep drawing frames and refreshing shadows until it has finished. */
+function animating(ms = VIEW.animMs) { animUntil = Math.max(animUntil, performance.now() + ms); invalidate(ms); }
+for (const type of ['pointerdown', 'pointerup', 'wheel', 'keydown', 'keyup', 'click', 'change', 'focus']) addEventListener(type, () => invalidate(), { capture: true, passive: true });
+addEventListener('pointermove', (e) => { if (e.buttons) invalidate(); }, { passive: true });
+document.addEventListener('visibilitychange', () => invalidate());
 
-const SVGNS = 'http://www.w3.org/2000/svg';
-const svg = document.createElementNS(SVGNS, 'svg'); svg.id = 'dimlines'; svg.setAttribute('aria-hidden', 'true'); app.appendChild(svg);
-const mk = (tag, parent) => parent.appendChild(document.createElementNS(SVGNS, tag));
-for (const d of dims) { d.g = mk('g', svg); d.path = mk('path', d.g); d.txt = mk('text', d.g); d.txt.textContent = d.text; }
-const _v = new THREE.Vector3();
-const toScreen = (x, y) => { _v.set(m(x), m(ENV.ceiling), m(y)).project(camera); return [(_v.x + 1) / 2 * innerWidth, (1 - _v.y) / 2 * innerHeight]; };
-function drawDims() {
-  for (const d of dims) {
-    const horiz = d.a[1] === d.b[1], o = horiz ? [0, d.off] : [d.off, 0];
-    const [ax, ay] = toScreen(d.a[0], d.a[1]), [bx, by] = toScreen(d.b[0], d.b[1]);
-    const [px, py] = toScreen(d.a[0] + o[0], d.a[1] + o[1]), [qx, qy] = toScreen(d.b[0] + o[0], d.b[1] + o[1]);
-    const t = 5, tick = (x, y) => `M${x - t} ${y + t}L${x + t} ${y - t}`; // 45° architectural tick
-    const ext = d.off ? `M${ax} ${ay}L${px} ${py}M${bx} ${by}L${qx} ${qy}` : '';
-    d.path.setAttribute('d', `M${px} ${py}L${qx} ${qy}${tick(px, py)}${tick(qx, qy)}${ext}`);
-    const cx = (px + qx) / 2, cy = (py + qy) / 2;
-    d.txt.setAttribute('transform', `translate(${cx} ${cy}) rotate(${horiz ? 0 : -90}) translate(0 -5)`);
-  }
+// Planar mirrors (vanity, bedroom closet) re-render the whole scene. They are only live in Walk mode, near the walker;
+// elsewhere a plain mirror-finish stand-in is shown.
+const mirrors = [];
+root.traverse((o) => { if (o.type === 'Reflector') mirrors.push(o); });
+for (const refl of mirrors) {
+  const standIn = new THREE.Mesh(refl.geometry, MAT.mirror); standIn.name = `${refl.name}:standin`;
+  standIn.position.copy(refl.position); standIn.quaternion.copy(refl.quaternion); standIn.scale.copy(refl.scale);
+  refl.parent.add(standIn); refl.userData.standIn = standIn;
+  const render = refl.onBeforeRender, at = new THREE.Vector3();
+  refl.onBeforeRender = function (r, sc, cam, ...rest) { // keep the last reflection when the walker is far away
+    if (refl.getWorldPosition(at).distanceTo(cam.position) < VIEW.mirrorRange) render.call(this, r, sc, cam, ...rest);
+  };
 }
-function setDims(on) {
-  overlay.visible = on; labels.domElement.style.display = svg.style.display = on ? 'block' : 'none';
-  $('dims').setAttribute('aria-pressed', on);
-}
+function setMirrors(live) { for (const refl of mirrors) { refl.visible = live; refl.userData.standIn.visible = !live; } }
+
+// ---------------------------------------------------------------- plan overlay (room labels + dimension lines)
+const area = areaReport();
+const plan = createPlanOverlay({ app, labelScene, getCamera: () => camera, area, listingSqFt: VIEW.listingSqFt });
+function setDims(on) { plan.setVisible(on); $('dims').setAttribute('aria-pressed', on); invalidate(); }
 
 // ---------------------------------------------------------------- modes
 const orbit = new OrbitControls(persp, renderer.domElement);
 orbit.target.copy(center); orbit.maxPolarAngle = Math.PI / 2.05; orbit.enableDamping = true;
-orbit.minDistance = 2; orbit.maxDistance = 40;
+orbit.minDistance = 2; orbit.maxDistance = 60;
 const planCtl = new OrbitControls(ortho, renderer.domElement);
 planCtl.enableRotate = false; planCtl.screenSpacePanning = true; planCtl.minZoom = 0.6; planCtl.maxZoom = 8;
 planCtl.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 planCtl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
 const walk = new PointerLockControls(persp, renderer.domElement);
+for (const c of [orbit, planCtl, walk]) c.addEventListener('change', () => invalidate());
 const hint = $('hint');
 const HINT = {
-  dollhouse: 'Drag to orbit · scroll to zoom · drag furniture to move it · click doors, the coffee table or a cabinet to open it',
+  dollhouse: TOUCH ? 'Drag to orbit · pinch to zoom · tap furniture for its size · tap doors and cabinets to open them'
+    : 'Drag to orbit · scroll to zoom · drag furniture to move it · click a piece for its size, doors and cabinets to open them',
   walk: 'Click to look around · WASD to walk · ←/→ turn · F use doors/furniture · C next cabinet · Esc releases the mouse',
-  plan: 'Drag to pan · scroll to zoom · drag furniture · M toggles dimensions',
+  plan: TOUCH ? 'Drag to pan · pinch to zoom · Dimensions shows room sizes' : 'Drag to pan · scroll to zoom · drag furniture · M toggles dimensions',
 };
 let mode;
+/** Portrait screens see less width at the same vertical FOV: back the dollhouse camera off so the whole plan fits. */
+const dollFit = () => Math.max(1, 1.2 / (innerWidth / innerHeight));
 function setMode(next) {
-  mode = next;
+  if (next === 'walk' && TOUCH && !V.cinematic) next = 'dollhouse'; // Walk needs a keyboard
+  mode = next; flight = null;
   if (walk.isLocked) walk.unlock();
   select(null);
   const showCeil = next === 'walk';
   shell.userData.ceilings.visible = showCeil;
   scene.traverse((o) => { if (o.userData.hideInDollhouse) o.visible = showCeil; });
+  setMirrors(showCeil && QUALITY.mirrors);
   orbit.enabled = next === 'dollhouse'; planCtl.enabled = next === 'plan';
   camera = next === 'plan' ? ortho : persp;
   renderPass.camera = camera; gtao.camera = camera;
   if (next === 'dollhouse') {
     const [x, e, y] = VIEW.dollPos;
-    persp.fov = VIEW.dollFov; persp.position.set(m(x), m(e), m(y)); orbit.target.copy(center); persp.lookAt(center); orbit.update();
+    persp.fov = VIEW.dollFov; persp.position.set(m(x), m(e), m(y)).sub(center).multiplyScalar(dollFit()).add(center); orbit.target.copy(center); persp.lookAt(center); orbit.update();
   }
   if (next === 'plan') {
     ortho.zoom = 1; ortho.updateProjectionMatrix();
@@ -175,11 +184,16 @@ function setMode(next) {
   hint.textContent = HINT[next];
   walkHud.hidden = next !== 'walk'; aimed = null; actionEl.hidden = true;
   document.querySelectorAll('#ui [data-mode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === next));
+  shadowsDirty(); // the ceiling and its shadow-only roof just appeared or disappeared
 }
-document.querySelectorAll('#ui [data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
-const toggleDims = () => { if (mode !== 'plan') setMode('plan'); setDims(!overlay.visible); };
+document.querySelectorAll('#ui [data-mode]').forEach((b) => b.addEventListener('click', () => { tour.exit(); setMode(b.dataset.mode); }));
+const toggleDims = () => { tour.exit(); if (mode !== 'plan') setMode('plan'); setDims(!plan.visible); };
 $('dims').addEventListener('click', toggleDims);
-renderer.domElement.addEventListener('click', () => { if (mode === 'walk' && !walk.isLocked) walk.lock(); });
+renderer.domElement.addEventListener('click', () => {
+  if (mode !== 'walk' || V.cinematic) return;
+  if (!walk.isLocked) walk.lock();
+  else if (measure.active) measure.click(pickPoint()); // locked: measure to the point under the crosshair
+});
 walk.addEventListener('lock', () => document.body.classList.add('locked'));
 walk.addEventListener('unlock', () => document.body.classList.remove('locked'));
 
@@ -187,18 +201,41 @@ walk.addEventListener('unlock', () => document.body.classList.remove('locked'));
 const helpBtn = $('helpBtn'), helpPanel = $('help');
 function toggleHelp(force) {
   const open = force ?? helpPanel.hidden; helpPanel.hidden = !open; helpBtn.setAttribute('aria-expanded', open);
+  if (open) lights.toggle(false);
 }
 helpBtn.addEventListener('click', () => toggleHelp());
 
 // toolbar: roving arrow-key focus (WAI-ARIA toolbar pattern); Tab enters/leaves the toolbar, buttons stay natively clickable
-const toolbar = $('ui'), tbButtons = [...toolbar.querySelectorAll('button')];
+const toolbar = $('ui'), tbButtons = () => [...toolbar.querySelectorAll('button')].filter((b) => b.offsetParent);
 toolbar.addEventListener('keydown', (e) => {
-  const i = tbButtons.indexOf(document.activeElement); if (i < 0) return;
-  const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tbButtons.length - 1 }[e.key];
+  const btns = tbButtons(), i = btns.indexOf(document.activeElement); if (i < 0) return;
+  const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: btns.length - 1 }[e.key];
   if (j === undefined) return;
   e.preventDefault(); e.stopPropagation();
-  tbButtons[(j + tbButtons.length) % tbButtons.length].focus();
+  btns[(j + btns.length) % btns.length].focus();
 });
+
+// ---------------------------------------------------------------- camera flights (tour stops, "look at it")
+let flight = null;
+const ease = (t) => t * t * (3 - 2 * t);
+/** Fly the perspective camera to a pose. pos / target are plan inches [x, y, elevation]; ms = 0 cuts. */
+function fly({ pos, target, fov = persp.fov, ms = 1600 }) {
+  const p1 = new THREE.Vector3(m(pos[0]), m(pos[2]), m(pos[1])), look = new THREE.Vector3(m(target[0]), m(target[2]), m(target[1]));
+  const probe = persp.clone(); probe.position.copy(p1); probe.lookAt(look);
+  flight = { p0: persp.position.clone(), q0: persp.quaternion.clone(), f0: persp.fov, p1, q1: probe.quaternion.clone(), f1: fov, look, t: 0, ms };
+  if (!ms) stepFlight(0);
+  invalidate();
+}
+function stepFlight(dt) {
+  if (!flight) return;
+  const f = flight;
+  f.t = f.ms ? Math.min(1, f.t + (dt * 1000) / f.ms) : 1;
+  const k = ease(f.t);
+  persp.position.lerpVectors(f.p0, f.p1, k); persp.quaternion.slerpQuaternions(f.q0, f.q1, k);
+  persp.fov = f.f0 + (f.f1 - f.f0) * k; persp.updateProjectionMatrix();
+  if (f.t >= 1) { flight = null; if (mode === 'dollhouse') { orbit.target.copy(f.look); orbit.update(); } }
+  invalidate();
+}
 
 // ---------------------------------------------------------------- collision (2D, plan inches)
 const hits = ([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) => ax0 < bx1 && ax1 > bx0 && ay0 < by1 && ay1 > by0;
@@ -233,16 +270,17 @@ const blocked = (rect, ignore) => !inside(rect) || statics.some((w) => hits(rect
 
 // ---------------------------------------------------------------- walk
 const keys = new Set();
-const isTyping = (e) => e.target.closest?.('#ui, #help, #cabinets');
+const isTyping = (e) => e.target.closest?.('#ui, #help, #cabinets, #lights, #info, #tour, #intro');
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 const dir = new THREE.Vector3(), right = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
 function stepWalk(dt) {
-  if (mode !== 'walk' || shotName) return;
+  if (mode !== 'walk' || shotName || V.cinematic) return;
   const k = (...c) => (c.some((x) => keys.has(x)) ? 1 : 0);
   const turn = k('ArrowLeft', 'KeyQ') - k('ArrowRight', 'KeyE');
   if (turn) persp.rotateOnWorldAxis(UP, turn * VIEW.turnSpeed * dt);
   const f = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown'), s = k('KeyD') - k('KeyA');
+  if (turn || f || s) invalidate();
   if (!f && !s) return;
   persp.getWorldDirection(dir); dir.y = 0; dir.normalize(); right.crossVectors(dir, UP);
   const v = dir.multiplyScalar(f).add(right.multiplyScalar(s)).normalize().multiplyScalar(VIEW.walkSpeed * dt);
@@ -261,11 +299,21 @@ let selected = null, dragging = null, downAt = null;
 const grab = new THREE.Vector3(), at = new THREE.Vector3();
 const halo = new THREE.BoxHelper(undefined, VIEW.highlight); halo.visible = false; halo.material.depthTest = false; halo.renderOrder = 10; scene.add(halo);
 const status = $('status');
+const say = (text) => { status.textContent = text; };
 function select(obj) {
   selected = obj; halo.visible = !!obj;
   if (obj) halo.setFromObject(obj);
   $('rotate').disabled = !obj;
-  status.textContent = obj ? `${obj.name} selected — drag or arrow keys to move, R to rotate, Esc to deselect` : '';
+  info.show(obj);
+  say(obj && !TOUCH ? 'Drag or arrow keys to move, R to rotate, Esc to deselect' : '');
+  invalidate();
+}
+/** A furniture piece moved, turned or changed shape: drop its cached footprint, refresh highlight, info card and shadows. */
+function moved(obj) {
+  fpCache.delete(obj);
+  if (selected === obj) { halo.setFromObject(obj); info.refresh(); }
+  lightingGroup?.userData.lighting?.refreshShadows();
+  shadowsDirty();
 }
 /** Try to move a piece by (dx, dz) metres: axis-separated so it slides along obstacles; never leaves the floor. */
 function moveBy(obj, dx, dz) {
@@ -279,32 +327,39 @@ function moveBy(obj, dx, dz) {
     }
   }
   obj.position.y = m(floorAt(obj.position.x / IN, obj.position.z / IN));
-  halo.setFromObject(obj);
+  moved(obj);
 }
 function rotateSelected() {
   if (!selected) return;
   selected.rotation.y += Math.PI / 2; fpCache.delete(selected);
-  if (blocked(fp(selected), selected)) { selected.rotation.y -= Math.PI / 2; fpCache.delete(selected); status.textContent = `No room to rotate the ${selected.name} here`; }
-  halo.setFromObject(selected);
+  if (blocked(fp(selected), selected)) { selected.rotation.y -= Math.PI / 2; say('No room to rotate it here'); }
+  moved(selected);
 }
 const setPtr = (e) => { ptr.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera); };
+/** Raycaster hits include hidden objects (ceilings in dollhouse view) and shadow-only helpers: keep what is actually drawn. */
+const drawn = (o) => { if (!o.isMesh || [].concat(o.material).every((q) => q.visible === false || q.colorWrite === false)) return false; for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+const firstHit = (objects) => ray.intersectObjects(objects, true).find((h) => drawn(h.object));
 const pick = (e) => {
   setPtr(e);
-  const hit = ray.intersectObjects(furniture.children, true)[0];
+  const hit = firstHit(furniture.children);
   let o = hit?.object; while (o && !o.userData.draggable) o = o.parent;
   return o ? { obj: o, hit } : null;
 };
-/** Non-furniture interactive objects (e.g. the washer/dryer door): anything outside `furniture` with userData.onClick. */
-const clickables = []; root.traverse((o) => { if (o.userData.onClick && !o.userData.draggable) clickables.push(o); });
+/** World point on the nearest visible surface under the pointer (or under the crosshair when no event is given). */
+function pickPoint(e) {
+  if (e) setPtr(e); else ray.setFromCamera(centre, persp);
+  const hit = firstHit([root]);
+  return hit && hit.distance < 60 ? hit.point : null; // beyond 60 m is the sky dome
+}
 const actionTarget = (o) => { while (o && !o.userData.onClick) o = o.parent; return o; };
 let pendingClick = null;
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  if (mode === 'walk' || e.button !== 0) return;
+  if (mode === 'walk' || e.button !== 0 || V.cinematic) return;
+  if (measure.active) { pendingClick = { measure: true, at: [e.clientX, e.clientY] }; return; }
   const p = pick(e);
-  if (!p) {
-    select(null);
-    const hit = ray.intersectObjects(clickables, true)[0]; // ray already set by pick()
-    pendingClick = hit ? { target: actionTarget(hit.object), at: [e.clientX, e.clientY] } : null;
+  if (!p || TOUCH) { // touch: a drag always orbits; a tap selects / opens
+    const hit = p ? null : firstHit(clickables); // ray already set by pick()
+    pendingClick = p || hit ? { target: p ? p.obj : actionTarget(hit.object), furniture: !!p, at: [e.clientX, e.clientY] } : { at: [e.clientX, e.clientY] };
     return;
   }
   select(p.obj); dragging = p.obj; downAt = [e.clientX, e.clientY];
@@ -312,16 +367,25 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
   orbit.enabled = planCtl.enabled = false;
   renderer.domElement.setPointerCapture(e.pointerId);
 });
+let hoverAt = 0;
 addEventListener('pointermove', (e) => {
-  if (!dragging) { if (mode !== 'walk') renderer.domElement.style.cursor = pick(e) ? 'grab' : ''; return; }
+  if (!dragging) {
+    if (mode === 'walk' || e.buttons || e.target !== renderer.domElement || performance.now() - hoverAt < 40) return; // hover ray-casts are throttled
+    hoverAt = performance.now();
+    if (measure.active) measure.hover(pickPoint(e)); else renderer.domElement.style.cursor = pick(e) ? 'grab' : '';
+    return;
+  }
   renderer.domElement.style.cursor = 'grabbing';
   setPtr(e); if (!ray.ray.intersectPlane(floorPlane, at)) return;
   moveBy(dragging, at.x - grab.x - dragging.position.x, at.z - grab.z - dragging.position.z);
 });
 addEventListener('pointerup', (e) => {
-  if (pendingClick) { // a click (not an orbit drag) on a door etc.
-    if (Math.hypot(e.clientX - pendingClick.at[0], e.clientY - pendingClick.at[1]) <= 4) use(pendingClick.target);
-    pendingClick = null;
+  if (pendingClick) { // a click (not an orbit drag): tape point, door etc., or (touch) a furniture piece
+    const c = pendingClick; pendingClick = null;
+    if (Math.hypot(e.clientX - c.at[0], e.clientY - c.at[1]) > (TOUCH ? 10 : 4)) return;
+    if (c.measure) measure.click(pickPoint(e));
+    else if (c.furniture) { const again = selected === c.target; select(c.target); if (again || !TOUCH) use(c.target); } // touch: first tap shows the card, second tap opens
+    else { select(null); use(c.target); }
   }
   if (!dragging) return;
   const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4;
@@ -330,7 +394,8 @@ addEventListener('pointerup', (e) => {
 });
 function resetFurniture() {
   furniture.children.forEach((g) => { const D = FURNITURE[g.userData.key]; place(g, D.pos[0], D.pos[1], g.position.y / IN, D.rot); g.position.y = m(floorAt(D.pos[0], D.pos[1])); });
-  fpCache = new Map(); select(null); status.textContent = 'Furniture reset';
+  fpCache = new Map(); select(null); say('Furniture reset');
+  lightingGroup?.userData.lighting?.refreshShadows(); shadowsDirty();
 }
 $('reset').addEventListener('click', resetFurniture);
 $('rotate').addEventListener('click', rotateSelected);
@@ -338,15 +403,21 @@ $('rotate').addEventListener('click', rotateSelected);
 // keyboard: shortcuts + keyboard-only furniture editing (N = next piece, arrows nudge in plan axes)
 addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.code === 'Escape') { toggleHelp(false); select(null); return; }
+  if (tour.introOpen) { if (e.code === 'Escape') tour.closeIntro(); return; }
+  if (tour.active && tour.key(e)) { e.preventDefault(); return; }
+  if (e.code === 'Escape') { toggleHelp(false); lights.toggle(false); if (measure.active) measure.setActive(false); else select(null); return; }
   if (isTyping(e) && (e.code.startsWith('Arrow') || e.code === 'Space' || e.code === 'Enter')) return; // toolbar owns these
   keys.add(e.code);
   const go = { Digit1: 'dollhouse', Digit2: 'walk', Digit3: 'plan' }[e.code];
-  if (go) return setMode(go);
+  if (go) { tour.exit(); return setMode(go); }
   if (e.code === 'KeyM') return toggleDims();
+  if (e.code === 'KeyP') return tour.active ? tour.exit() : tour.start();
+  if (tour.active) return;
+  if (e.code === 'KeyT') return measure.setActive(!measure.active);
+  if (e.code === 'KeyL') { toggleHelp(false); return lights.toggle(); }
   if (e.code === 'KeyH' || e.key === '?') return toggleHelp();
-  if (e.code === 'KeyC') return cycleCabinet();
-  if (e.code === 'KeyG') return lookAtCabinet();
+  if (e.code === 'KeyC') return cabinets.cycle();
+  if (e.code === 'KeyG') return lookAt(cab);
   if (e.code === 'KeyF' && mode === 'walk') return use(aimed);
   if (mode === 'walk') { if (e.code.startsWith('Arrow')) e.preventDefault(); return; }
   if (e.code === 'KeyR') return rotateSelected();
@@ -362,19 +433,21 @@ const actionLabel = (o) => o.userData.actionLabel ?? ACTION_DEFAULT[o.userData.k
 function use(o) {
   if (!o?.userData.onClick) return;
   o.userData.onClick();
-  status.textContent = `${actionLabel(o)}`;
+  say(actionLabel(o));
+  animating();
+  if (o.userData.draggable) moved(o); // e.g. the shoe rack changes height
 }
 // walk mode: whatever interactive thing is under the crosshair within reach can be used with F
-const REACH = 2.6, centre = new THREE.Vector2(0, 0), walkHud = $('walkhud'), actionEl = $('action');
+const REACH = 2.6, centre = new THREE.Vector2(0, 0), walkHud = $('walkhud'), actionEl = $('action'), _v = new THREE.Vector3();
 let aimed = null, aimFrame = 0;
 function updateAim() {
-  if (mode !== 'walk' || ++aimFrame % 6) return;
+  if (mode !== 'walk' || V.cinematic || ++aimFrame % 6) return;
   // bounding-box test, not mesh hits: louvered doors and open shelving are mostly holes, and the box is what you "point at"
   ray.setFromCamera(centre, persp);
   let best = REACH;
   aimed = null;
   for (const o of [...clickables, ...furniture.children]) {
-    if (!o.userData.onClick) continue;
+    if (!o.userData.onClick || !o.visible) continue;
     const p = ray.ray.intersectBox(box3.setFromObject(o), _v);
     const d = p ? p.distanceTo(ray.ray.origin) : Infinity;
     if (d < best) { best = d; aimed = o; }
@@ -383,53 +456,35 @@ function updateAim() {
   if (aimed) actionEl.querySelector('span').textContent = actionLabel(aimed);
 }
 
-// storage-cabinet options: one slot, three products, compared in place (panel, C key, ?cabinet=1|2|3)
-const cab = furniture.children.find((f) => f.userData.key === 'cabinet');
-const cabPanel = $('cabinets');
-const fmt = (v) => `${v}″`;
-function setCabinet(i, announce = true) {
-  if (!cab) return;
-  cab.userData.setOption(i); fpCache.delete(cab);
-  if (selected === cab) halo.setFromObject(cab);
-  try { localStorage.setItem('spruce.cabinet', String(i + 1)); } catch { /* private mode */ }
-  for (const r of cabPanel.querySelectorAll('input[name=cab]')) r.checked = Number(r.value) === i;
-  const o = cab.userData.options[i];
-  const text = o ? `Cabinet ${o.letter} · ${o.info.title} · ${fmt(o.info.w)} W × ${fmt(o.info.d)} D × ${fmt(o.info.h)} H` : 'No cabinet';
-  $('cabNow').textContent = $('cabNowWalk').textContent = o ? `${o.letter} · ${o.info.short}` : 'none';
-  $('cabOpen').disabled = $('cabLook').disabled = !o;
-  if (announce) status.textContent = text;
-}
-if (cab) {
-  const list = $('cabList');
-  cab.userData.options.forEach((o, i) => {
-    const C = o.info, id = `cab-${i}`;
-    list.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="radio" name="cab" id="${id}" value="${i}"><span><b>${o.letter} · ${C.title}</b><small>${fmt(C.w)} W × ${fmt(C.d)} D × ${fmt(C.h)} H · ${C.finish}</small>${C.url ? `<a href="${C.url}" target="_blank" rel="noopener noreferrer">listing ↗</a>` : '<small>from your photo</small>'}</span></label>`);
-  });
-  list.insertAdjacentHTML('beforeend', '<label for="cab-none"><input type="radio" name="cab" id="cab-none" value="-1"><span><b>None</b><small>see the empty spot</small></span></label>');
-  list.addEventListener('change', (e) => setCabinet(Number(e.target.value)));
-  $('cabOpen').addEventListener('click', () => use(cab));
-  $('cabLook').addEventListener('click', lookAtCabinet);
-  const fold = (collapsed) => { cabPanel.dataset.collapsed = collapsed; $('cabFold').setAttribute('aria-expanded', !collapsed); $('cabFold').textContent = collapsed ? '+' : '–'; try { localStorage.setItem('spruce.cabFold', collapsed ? '1' : ''); } catch { /* */ } };
-  $('cabFold').addEventListener('click', () => fold(cabPanel.dataset.collapsed !== 'true'));
-  try { fold(localStorage.getItem('spruce.cabFold') === '1'); } catch { fold(false); }
-  setCabinet(cab.userData.index, false);
-} else cabPanel.hidden = true;
-const cycleCabinet = () => cab && setCabinet(((cab.userData.index + 2) % (cab.userData.options.length + 1)) - 1); // A → B → C → D → none → A
-/** Frame the cabinet: dollhouse orbits around it, walk mode stands you ~7 ft in front of it. */
-function lookAtCabinet() {
-  if (!cab?.children.length) return;
-  const b = new THREE.Box3().setFromObject(cab), c = b.getCenter(new THREE.Vector3());
-  const front = new THREE.Vector3(0, 0, 1).applyQuaternion(cab.quaternion); // the cabinet's +Z
+/** Frame a piece: dollhouse orbits around it, walk mode stands you ~7 ft in front of it. */
+function lookAt(obj) {
+  if (!obj?.children.length) return;
+  const b = new THREE.Box3().setFromObject(obj), c = b.getCenter(new THREE.Vector3());
+  const front = new THREE.Vector3(0, 0, 1).applyQuaternion(obj.quaternion); // the piece's +Z
+  const inch = (v) => v / IN;
   if (mode === 'walk') {
     persp.position.set(c.x + front.x * m(84), m(ENV.eye), c.z + front.z * m(84));
-    persp.lookAt(c.x, m(40), c.z);
+    persp.lookAt(c.x, m(40), c.z); invalidate();
   } else {
     if (mode !== 'dollhouse') setMode('dollhouse');
-    orbit.target.copy(c).setY(m(30));
-    persp.position.set(c.x + front.x * m(110) - front.z * m(40), m(95), c.z + front.z * m(110) + front.x * m(40));
-    orbit.update();
+    fly({ pos: [inch(c.x + front.x * m(110) - front.z * m(40)), inch(c.z + front.z * m(110) + front.x * m(40)), 95], target: [inch(c.x), inch(c.z), 30], ms: 900 });
   }
 }
+
+// ---------------------------------------------------------------- viewer context shared with src/viewer/*
+const V = {
+  scene, labelScene, furniture, cinematic: false, compact: TOUCH || innerWidth < 700,
+  get mode() { return mode; }, get selected() { return selected; },
+  setMode, fly, lookAt, select, use, moved, say, invalidate, animating, shadowsDirty, blocked, fp, actionLabel, rotateSelected,
+};
+const info = createInfo(V);
+const measure = createMeasure(V);
+const lights = createLightsPanel(V, lightingGroup); // also makes the fixtures clickable, so it must run before `clickables` is collected
+const cab = furniture.children.find((f) => f.userData.key === 'cabinet');
+const cabinets = createCabinetPanel(V, cab);
+const tour = createTour(V, { cabinets });
+/** Non-furniture interactive objects (doors, washer/dryer door, light fixtures): anything outside `furniture` with userData.onClick. */
+const clickables = []; root.traverse((o) => { if (o.userData.onClick && !o.userData.draggable) clickables.push(o); });
 
 // ---------------------------------------------------------------- shots
 function applyShot(name) {
@@ -456,25 +511,36 @@ const view = params.get('view');
 if (shotName) applyShot(shotName); else setMode(['walk', 'plan'].includes(view) ? view : 'dollhouse');
 if (params.has('dims')) setDims(true);
 if (shotName || view) document.body.classList.toggle('shot', params.has('clean') || !!shotName);
+if (params.get('time')) lights.setTime(params.get('time'), false); // ?time=day|evening|night
+const tooling = shotName || view || params.has('clean');
+if (!tooling) tour.maybeIntro();
+if (params.has('tour')) { tour.closeIntro(); tour.start(); }
 
 const clock = new THREE.Clock(); let frames = 0;
 const tickers = []; scene.traverse((o) => { if (o.userData.tick) tickers.push(o); });
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const dt = Math.min(clock.getDelta(), 0.05), now = performance.now();
   stepWalk(dt);
+  stepFlight(dt);
+  if (orbit.enabled && !flight) orbit.update(); // damping keeps firing 'change' (-> invalidate) until it settles
+  if (frames >= 8 && now > renderUntil) return; // nothing changed: skip the frame
   updateAim();
-  if (orbit.enabled) orbit.update();
   tickers.forEach((o) => o.userData.tick(dt));
+  if (shadowStale || now < animUntil) { renderer.shadowMap.needsUpdate = true; shadowStale = false; }
   composer.render();
-  if (overlay.visible) { labels.render(scene, camera); drawDims(); }
+  labels.render(labelScene, camera); plan.draw();
+  if (frames === 0) { timings.total = Math.round(performance.now()); timings.firstFrame = timings.total - Math.round(tBuild) - timings.build; $('loading').classList.add('done'); }
   if (++frames === 8) window.__ready = true; // tools/shot.mjs waits for this
 });
+if (shotName) setInterval(() => invalidate(1000), 500); // screenshot tooling: keep frames flowing in a hidden / throttled tab
 
 // Debug/measurement hook for tools/*.mjs and critics.
 window.__apt = {
-  THREE, scene, renderer, SHOTS, area, failed, furniture,
+  THREE, scene, renderer, composer, gtao, SHOTS, area, failed, timings, furniture, tour, measure, lights, cabinets, V,
   get camera() { return camera; }, get mode() { return mode; }, get selected() { return selected?.name ?? null; },
-  setMode, blocked, colliders: statics, setCabinet, use: (name) => use(actionTarget(scene.getObjectByName(name))),
+  setMode, blocked, colliders: statics, setCabinet: cabinets.set, use: (name) => use(actionTarget(scene.getObjectByName(name))),
+  invalidate, select: (name) => select(scene.getObjectByName(name) ?? null),
+  stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), // of the last pass; set renderer.info.autoReset = false to total a frame
   find: (name) => scene.getObjectByName(name),
   names: () => { const n = []; scene.traverse((o) => o.name && n.push(o.name)); return n; },
   size: (name) => { const o = scene.getObjectByName(name); return o ? sizeInches(o) : null; },
@@ -485,5 +551,4 @@ window.__apt = {
   eye: () => [persp.position.x / IN, persp.position.z / IN, persp.position.y / IN].map((v) => Math.round(v * 10) / 10), // plan x, y, elev
   /** Screen pixel of a plan-space point (for Playwright pointer tests). */
   screen: (x, y, elev = 0) => { const v = new THREE.Vector3(m(x), m(elev), m(y)).project(camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; },
-  stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: null }),
 };

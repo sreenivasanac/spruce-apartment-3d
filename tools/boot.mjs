@@ -13,6 +13,7 @@ export async function boot(query) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
+  await page.addInitScript(() => { try { localStorage.setItem('spruce.intro', '1'); } catch { /* no storage */ } }); // skip the first-visit intro card
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/${query}`);
   await page.waitForFunction('window.__ready === true', null, { timeout: 60000 });
   let fails = 0;

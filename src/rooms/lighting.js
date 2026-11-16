@@ -2,7 +2,9 @@
 // Contract: build(ctx) returns a THREE.Group in WORLD coordinates. ctx = { scene, renderer }.
 // Look: 6:20 PM golden hour (refs IMG_3933/3935/3937) — low WSW sun through slider + bedroom window, cool sky fill
 // from the glazing, every real fixture switched on (warm LED), soft IBL/hemisphere bounce.
-// Shadow budget: sun (every frame) + kitchen oval + hall dome (static cube shadows, refreshed only when furniture moves).
+// Shadow budget: sun + kitchen oval + hall dome. All shadow maps are static: the viewer re-renders them only when something moves.
+// Switching: group.userData.lighting = { fixtures, setFixture(id, on), setTime('day' | 'evening' | 'night'), time } (used by viewer/lightsPanel.js).
+// Lights are dimmed to 0 instead of hidden: changing the number of visible lights would recompile every shader.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
@@ -180,9 +182,16 @@ function underCabinet() {
 }
 
 // ---------------------------------------------------------------- daylight
+/** Looks per time of day. `sun`/`hemi`/`env` are intensities, `sky` scales the window area lights, `scenery` the unlit outdoor backdrop. */
+export const TIMES = {
+  day: { label: 'Day', sun: 5.2, sunColor: 0xfff3e2, elevationDeg: 34, sky: 1.5, skyColor: 0xeaf1f8, hemi: 0.7, env: 0.6, bg: 0xc3dcf0, scenery: 1.15, exposure: 0.82, fixtures: false },
+  evening: { label: 'Evening', sun: 4.5, sunColor: SUN_COLOR, elevationDeg: SUN.elevationDeg, sky: 1, skyColor: SKY, hemi: 0.42, env: RENDER.envIntensity, bg: 0xd4e1ea, scenery: 1, exposure: RENDER.exposure, fixtures: true },
+  night: { label: 'Night', sun: 0, sunColor: SUN_COLOR, elevationDeg: SUN.elevationDeg, sky: 0.05, skyColor: 0x8fa6d6, hemi: 0.05, env: 0.05, bg: 0x070b14, scenery: 0.05, exposure: 1.15, fixtures: true },
+};
+
 /** Sun direction (scene -> sun), world space. */
-function sunDir() {
-  const az = THREE.MathUtils.degToRad(SUN.azimuthFromWestDeg), el = THREE.MathUtils.degToRad(SUN.elevationDeg);
+function sunDir(elevationDeg = SUN.elevationDeg) {
+  const az = THREE.MathUtils.degToRad(SUN.azimuthFromWestDeg), el = THREE.MathUtils.degToRad(elevationDeg);
   return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
 }
 
@@ -224,8 +233,11 @@ function foliageGobo(dir) {
   const mat = new THREE.MeshBasicMaterial({ alphaMap: tex, alphaTest: 0.5, colorWrite: false, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(spanU, spanV), mat);
   mesh.name = 'lighting:foliage-gobo'; mesh.castShadow = true; mesh.frustumCulled = false;
-  mesh.position.copy(P((BED_WINDOW.a + BED_WINDOW.b) / 2, Y.westInt, (BED_WINDOW.sill + BED_WINDOW.head) / 2).addScaledVector(dir, dist));
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+  mesh.userData.aim = (d) => { // keep the gobo between the sun and the bedroom window
+    mesh.position.copy(P((BED_WINDOW.a + BED_WINDOW.b) / 2, Y.westInt, (BED_WINDOW.sill + BED_WINDOW.head) / 2).addScaledVector(d, dist));
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), d);
+  };
+  mesh.userData.aim(dir);
   return mesh;
 }
 
@@ -243,7 +255,8 @@ export function build({ scene, renderer }) {
   g.add(lights);
 
   // soft bounce. Ground colour is what the CEILING receives: keep it a warm mid-tone or ceilings go blue-grey next to the walls
-  lights.add(new THREE.HemisphereLight(0xf0e9dc, 0x77695c, 0.42));
+  const hemi = new THREE.HemisphereLight(0xf0e9dc, 0x77695c, 0.42);
+  lights.add(hemi);
 
   // Sun: WSW, 13 deg up. Frustum is fitted to the unit so the 5.5" rail slats resolve to crisp stripes on the LVP.
   const dir = sunDir(), c = P(ENV.w / 2, ENV.d / 2, 0);
@@ -256,7 +269,8 @@ export function build({ scene, renderer }) {
   Object.assign(sun.shadow.camera, { left: -6.5, right: 6.5, top: 5, bottom: -5, near: 5, far: 40 });
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.015;
-  lights.add(sun, sun.target, foliageGobo(dir));
+  const gobo = foliageGobo(dir);
+  lights.add(sun, sun.target, gobo);
 
   // Shadow-only roof: the ceiling is a zero-thickness plane almost parallel to the 13-degree sun, so shadow bias let a
   // sliver of sun onto the wall/ceiling joints. A thick caster whose FRONT faces go into the shadow map closes that leak.
@@ -288,12 +302,15 @@ export function build({ scene, renderer }) {
 
   // fixtures (ceiling-mounted ones disappear with the ceiling in dollhouse/plan views)
   const track = diningTrack();
-  const ceilingMounted = [kitchenOval(), track.fixture, flushDome(F.hallFlush, 'lighting:hall-flush'), flushDome(F.entryFlush, 'lighting:entry-flush'), flushDome(F.bathFlush, 'lighting:bath-flush')];
   const dome = (o, name, k = 0.3) => ceilingHalo(o, o.dia, o.dia, ENV.ceiling, k, `${name}:halo`);
-  ceilingMounted.push(ceilingHalo(F.kitchenOval, F.kitchenOval.l, F.kitchenOval.w, ENV.kitchenCeiling, 0.4, 'lighting:kitchen-oval:halo'),
-    dome(F.hallFlush, 'lighting:hall-flush'), dome(F.entryFlush, 'lighting:entry-flush'), dome(F.bathFlush, 'lighting:bath-flush', 0.22));
+  const oval = [kitchenOval(), ceilingHalo(F.kitchenOval, F.kitchenOval.l, F.kitchenOval.w, ENV.kitchenCeiling, 0.4, 'lighting:kitchen-oval:halo')];
+  const hallF = [flushDome(F.hallFlush, 'lighting:hall-flush'), dome(F.hallFlush, 'lighting:hall-flush')];
+  const entryF = [flushDome(F.entryFlush, 'lighting:entry-flush'), dome(F.entryFlush, 'lighting:entry-flush')];
+  const bathF = [flushDome(F.bathFlush, 'lighting:bath-flush'), dome(F.bathFlush, 'lighting:bath-flush', 0.22)];
+  const ceilingMounted = [...oval, track.fixture, ...hallF, ...entryF, ...bathF];
   ceilingMounted.forEach((f) => { f.userData.hideInDollhouse = true; });
-  g.add(...ceilingMounted.map(noShadow), noShadow(vanityBar()), noShadow(underCabinet()));
+  const vanity = vanityBar(), underCab = underCabinet();
+  g.add(...ceilingMounted.map(noShadow), noShadow(vanity), noShadow(underCab));
   lights.add(track.lights);
 
   const below = (o, elev, gap) => P(o.cx, o.cy, elev - o.h - gap); // just under the lens so the ceiling around it still catches light
@@ -303,19 +320,69 @@ export function build({ scene, renderer }) {
   // drew hard wall-top shadow edges across the dining ceiling.)
   const pool = new THREE.SpotLight(WARM, 5, 4, 0.75, 1, 2); pool.name = 'light:kitchen-oval-pool';
   pool.position.copy(below(F.kitchenOval, ENV.kitchenCeiling, 1)); pool.target.position.copy(P(F.kitchenOval.cx, F.kitchenOval.cy, 0));
-  lights.add(pool, pool.target);
-  lights.add(kitchen, hall,
-    pointLight('light:entry-flush', below(F.entryFlush, ENV.ceiling, 2), 1.3, 5),
-    pointLight('light:bath-flush', below(F.bathFlush, ENV.ceiling, 2), 0.7, 3.2),
-    pointLight('light:vanity-bar', P(X.northInt + F.vanityBar.standoff + F.vanityBar.dia + 3, (Y.vanityA + Y.vanityB) / 2, BATH.vanity.light.elev - 1), 1.0, 3));
+  const entry = pointLight('light:entry-flush', below(F.entryFlush, ENV.ceiling, 2), 1.3, 5);
+  const bath = pointLight('light:bath-flush', below(F.bathFlush, ENV.ceiling, 2), 0.7, 3.2);
+  const vanityL = pointLight('light:vanity-bar', P(X.northInt + F.vanityBar.standoff + F.vanityBar.dia + 3, (Y.vanityA + Y.vanityB) / 2, BATH.vanity.light.elev - 1), 1.0, 3);
+  lights.add(pool, pool.target, kitchen, hall, entry, bath, vanityL);
 
-  // The two fixture shadow maps are static; re-render them only when a furniture piece has been moved/rotated.
-  let sig = NaN, furn;
-  lights.userData.tick = () => {
-    furn ??= scene.getObjectByName('furniture');
-    let s = 0;
-    for (const f of furn?.children ?? []) s += f.position.x * 3 + f.position.z * 7 + f.rotation.y * 11;
-    if (s !== sig) { sig = s; kitchen.shadow.needsUpdate = hall.shadow.needsUpdate = true; }
+  // ---- switching: every fixture = its lights + glowing lens materials + additive glow cards
+  const fixtures = {};
+  const register = (id, label, objs, lamps) => {
+    const mats = [], cards = [];
+    objs.forEach((o) => o.traverse((c) => {
+      if (!c.isMesh) return;
+      if (c.material.blending === THREE.AdditiveBlending) cards.push(c);
+      else if (c.material.emissive?.getHex() && c.material.emissiveIntensity > 0) mats.push([c.material, c.material.emissiveIntensity]);
+    }));
+    const lit = lamps.map((l) => [l, l.intensity]);
+    objs.forEach((o) => { o.userData.fixture = id; });
+    fixtures[id] = { label, on: true, set(on) {
+      this.on = on;
+      lit.forEach(([l, k]) => { l.intensity = on ? k : 0; });
+      mats.forEach(([mat, k]) => { mat.emissiveIntensity = on ? k : 0; });
+      cards.forEach((c) => { c.visible = on; });
+    } };
   };
+  register('kitchen', 'Kitchen ceiling', oval, [kitchen, pool]);
+  register('underCab', 'Under-cabinet strip', [underCab], []);
+  register('dining', 'Dining track', [track.fixture], track.lights.children.filter((l) => l.isSpotLight));
+  register('hall', 'Hall', hallF, [hall]);
+  register('entry', 'Entry', entryF, [entry]);
+  register('bath', 'Bathroom', [...bathF, vanity], [bath, vanityL]);
+
+  // unlit outdoor backdrop (sky dome, foliage cards, pool water): scaled per time of day, since no light reaches it
+  let backdrop = null;
+  const collectBackdrop = () => {
+    backdrop = [];
+    const seen = new Set();
+    scene.getObjectByName('deck')?.traverse((o) => [].concat(o.material ?? []).forEach((mat) => {
+      if (seen.has(mat)) return; seen.add(mat);
+      if (mat.isMeshBasicMaterial && mat.map) backdrop.push([mat.color, mat.color.clone()]);
+      else if (mat.isMeshLambertMaterial && mat.emissiveIntensity > 0) backdrop.push([mat, mat.emissiveIntensity]);
+    }));
+  };
+  const skyLights = [[skySlider, skySlider.intensity], [skyWindow, skyWindow.intensity]];
+  const api = { fixtures, time: 'evening', TIMES,
+    setFixture(id, on) { fixtures[id]?.set(on); kitchen.shadow.needsUpdate = hall.shadow.needsUpdate = true; },
+    setTime(name) {
+      const T = TIMES[name]; if (!T) return;
+      if (!backdrop) collectBackdrop(); // deck is built before lighting, but collect lazily in case the order changes
+      api.time = name;
+      const d = sunDir(T.elevationDeg);
+      sun.intensity = T.sun; sun.color.set(T.sunColor); sun.position.copy(c).addScaledVector(d, 25);
+      const half = T.elevationDeg > 20 ? 6.5 : 5; // a higher sun sees more of the plan: taller shadow frustum
+      Object.assign(sun.shadow.camera, { top: half, bottom: -half }); sun.shadow.camera.updateProjectionMatrix();
+      gobo.userData.aim(d);
+      skyLights.forEach(([l, k]) => { l.intensity = k * T.sky; l.color.set(T.skyColor); });
+      hemi.intensity = T.hemi; scene.environmentIntensity = T.env; scene.background.set(T.bg); renderer.toneMappingExposure = T.exposure;
+      backdrop.forEach(([o, base]) => { if (o.isColor) o.copy(base).multiplyScalar(T.scenery); else o.emissiveIntensity = base * T.scenery; });
+      Object.values(fixtures).forEach((f) => f.set(T.fixtures));
+      kitchen.shadow.needsUpdate = hall.shadow.needsUpdate = true;
+    },
+  };
+  g.userData.lighting = api;
+
+  // The two fixture cube shadows are static too; the viewer calls this when furniture or a door has moved.
+  api.refreshShadows = () => { kitchen.shadow.needsUpdate = hall.shadow.needsUpdate = true; };
   return g;
 }

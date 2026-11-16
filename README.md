@@ -1,6 +1,6 @@
 # Spruce Apartment 3D
 
-A walkable, **to-scale** Three.js model of a one-bedroom apartment (Plan 1D, 676 sq ft), built so we could plan furniture before moving in. Every wall, door, cabinet and piece of furniture comes from the floor plan, tape-measured dimensions or product listings, and is placed to the inch. You can orbit it like a dollhouse, walk through it at eye height, open doors and cabinets, compare storage options in place, and view cabinets at real size in your room with iPhone AR.
+A walkable, **to-scale** Three.js model of a one-bedroom apartment (Plan 1D, 676 sq ft), built so we could plan furniture before moving in. Every wall, door, cabinet and piece of furniture comes from the floor plan, tape-measured dimensions or product listings, and is placed to the inch. You can orbit it like a dollhouse, walk through it at eye height, open doors and cabinets, compare storage options in place, read the clear space around each piece, measure between any two points, switch between day and night, and view cabinets at real size in your room with iPhone AR. A one-minute guided tour shows the main points.
 
 **Live: https://apartment.pragnyalabs.com** · iPhone AR page: https://apartment.pragnyalabs.com/ar.html
 
@@ -32,22 +32,65 @@ pnpm run build        # → dist/ (index.html + ar.html + public/ar/*.usdz)
 | ![Dollhouse UI](docs/screenshots/ui-dollhouse.jpg) | ![Plan with dimensions](docs/screenshots/ui-plan.jpg) | ![Walk HUD](docs/screenshots/ui-walk.jpg) |
 | Orbit and zoom. Drag furniture to move it; it stays on the floor and slides along walls. | Top-down, with room sizes, wall lengths and an area check against the 676 sq ft listing. | First person at 5'7" eye height with collisions. Aim the crosshair and press **F** to use what you're looking at. |
 
+A first visit opens with a short intro and an offer of the tour. The page loads in about two seconds and draws a frame only when something changes, so an idle tab uses no GPU.
+
 ### Controls
 
 | Where | Input | Does |
 |---|---|---|
 | Anywhere | `1` `2` `3` | Dollhouse · Walk · Plan |
+| | `P` | Guided tour (arrow keys step, `Esc` ends it) |
+| | `T` | Tape measure: click two points |
+| | `L` | Lights: day / evening / night and a switch per fixture |
 | | `M` | Dimensions overlay |
 | | `C` / `G` | Cycle the storage-cabinet option / look at it |
 | | `H` | Help panel |
 | Dollhouse / Plan | Drag | Move a piece of furniture |
-| | Click | Select it, or open it (doors, coffee table, futon, wardrobe, cabinet, shed, shoe-closet doors) |
+| | Click | Select a piece and show its size card; open things (doors, coffee table, futon, wardrobe, cabinet, shed, shoe-closet doors) |
 | | `N`, arrows (`Shift` = 6"), `R` | Next piece, nudge 1", rotate 90° |
 | Walk | Click, then mouse | Look around (`Esc` releases) |
 | | `W A S D`, `← →` / `Q E` | Walk, turn |
 | | `F` | Use the thing under the crosshair; the prompt says what it will do |
 
 **Reset furniture** puts everything back where `src/dimensions.js` says. Dragged positions are not saved.
+
+---
+
+## Planning tools
+
+### Size and clear space
+
+Click a piece of furniture to see its product size and how much free floor is left on each of its four sides, measured to the nearest wall, built-in or other piece. Gaps narrower than 24" are highlighted. The numbers update while you drag.
+
+![Size card for the futon](docs/screenshots/ui-info.jpg)
+
+### Tape measure
+
+Press `T` (or **Measure**) and click two points on any surface. The readout gives the straight-line distance, plus the horizontal and vertical parts when the two points are at different heights. In Walk mode the point under the crosshair is used.
+
+![Tape measure in plan view](docs/screenshots/ui-measure.jpg)
+
+### Day, evening and night
+
+**Lights** switches the time of day and each fixture: kitchen ceiling, under-cabinet strip, dining track, hall, entry and bathroom. The fixtures can also be clicked in the 3D view (`F` in Walk mode). The living room and bedroom have no ceiling fixtures, which the night view makes obvious.
+
+| Day | Night |
+|---|---|
+| ![Day](docs/screenshots/ui-day.jpg) | ![Night](docs/screenshots/ui-night.jpg) |
+
+### Guided tour
+
+**▶ Tour** (or `P`) flies through eight stops with a caption at each: the overview, the living room, the four cabinets cycling in their corner, things that open, the bedroom, the shoe-rack fit check and the deck.
+
+| Cabinets, compared in place | The 10-tier rack hitting the rod |
+|---|---|
+| ![Tour: cabinets](docs/screenshots/ui-tour-cabinets.jpg) | ![Tour: shoe rack](docs/screenshots/ui-tour-shoes.jpg) |
+
+### On a phone
+
+Phones and tablets get a view-only version: orbit, pinch to zoom, tap furniture for its size card, tap doors and cabinets to open them, plus the tour, lights, plan and tape measure. Walk mode and furniture dragging need a keyboard and mouse. Rendering runs at a lower resolution there, with a smaller shadow map and no live mirrors.
+
+<img src="docs/screenshots/ui-phone.jpg" alt="Phone view with a size card" width="280">
 
 ---
 
@@ -122,7 +165,9 @@ src/
   rooms/             finishes, openings (doors, sliders), kitchen, bath, closets, deck, lighting
   furniture/         one module per piece; cabinet.js is the A–D option slot, cabinets/* the models
   lib/               build helpers, procedural wood grain + normal maps
-  main.js            viewer: modes, controls, HUD, cabinet panel, shots
+  main.js            viewer: renderer, render loop, modes, walking, furniture editing, shots
+  viewer/            UI features, one file each: plan overlay, cabinet panel, info card, tape measure, lights panel, tour
+  style.css          viewer chrome
   shots.js           named camera poses used for screenshots
 ar.html              iPhone AR Quick Look page
 tools/               screenshot, test and AR-export scripts (Playwright)
@@ -133,7 +178,22 @@ docs/                spec, photo index, assumptions log, screenshots
 
 **Interactivity** is driven by `userData` hooks on objects: `onClick`, `tick`, `actionLabel`, `setOpen`/`animate`. The viewer handles clicks in Dollhouse and the `F` key in Walk the same way.
 
-**Lighting** is set for early evening: a low sun through the slider and the bedroom window, every real fixture switched on, rect-area sky light from the glazing, and GTAO ambient occlusion.
+**Lighting** defaults to early evening: a low sun through the slider and the bedroom window, every real fixture switched on, rect-area sky light from the glazing, and GTAO ambient occlusion. `TIMES` in `src/rooms/lighting.js` holds the day, evening and night looks. Lights are dimmed to zero, never hidden, because changing the number of visible lights makes three.js recompile every shader.
+
+**Performance.** Measured in Chrome at 1512 × 982 @2x, before and after the last round of work:
+
+| | Before | After |
+|---|---|---|
+| Time to first frame | 25 s | 2 s |
+| Frame time while orbiting | 30 ms | 14 ms |
+| Draw calls per frame | 7,700 | 2,800 |
+| Frames drawn while idle | 60 per second | 0 |
+
+- Almost all of the load time was one wall texture. It drew 4,500 ellipses with a canvas `blur()` filter applied to each one, and Chrome spent 23 s rasterizing it. The texture now draws the ellipses sharp and blurs once.
+- A frame is drawn only after input, during an animation or while the camera is moving (`invalidate()` in `src/main.js`).
+- Shadow maps are static and are re-rendered only when a piece of furniture, a door or a light changes (`shadowsDirty()`).
+- The two planar mirrors re-render the whole scene, so they are live only in Walk mode and only near the walker. Other views show a mirror-finish stand-in.
+- Ambient occlusion is computed at half resolution on HiDPI screens.
 
 ### Changing things
 
@@ -154,7 +214,10 @@ node tools/shot.mjs --eval="__apt.bounds('desk')"    # measure anything in the s
 node tools/interact-test.mjs                          # doors, F key, cabinet switching
 node tools/walk-test.mjs                              # walk collisions + turning
 node tools/drag-test.mjs                              # drag, rotate, reset
+node tools/feature-test.mjs                           # tour, lights, tape measure, info card, idle rendering, load time
 ```
+
+URL parameters for linking to a state: `?view=walk|plan`, `?cabinet=1..4`, `?time=day|evening|night`, `?tour`, `?dims`.
 
 Each tool starts its own Vite server and drives headless Chrome through Playwright.
 

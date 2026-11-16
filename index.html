@@ -5,78 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:," />
   <title>Spruce Apartment 3D</title>
-  <style>
-    :root { --panel: #1e1f22e6; --line: #5a5c61; --ink: #eee; --accent: #e9e4d8; --focus: #ffb020; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.45 system-ui, sans-serif; color: var(--ink); }
-    #app { position: fixed; inset: 0; }
-    #app canvas { display: block; touch-action: none; }
-    #ui { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; pointer-events: none; }
-    #ui > * { pointer-events: auto; }
-    #ui .sep { width: 1px; background: var(--line); margin: 4px 2px; }
-    button { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-    button:hover:not(:disabled) { border-color: var(--accent); }
-    button:disabled { opacity: .45; cursor: default; }
-    button[aria-pressed="true"], button[aria-expanded="true"] { background: var(--accent); color: #111; }
-    button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-    kbd { font: 11px ui-monospace, monospace; background: #ffffff1f; border: 1px solid #ffffff33; border-radius: 3px; padding: 0 4px; }
-    #hint { position: fixed; bottom: 12px; left: 12px; background: var(--panel); padding: 6px 10px; border-radius: 6px; max-width: min(560px, 90vw); z-index: 5; }
-    #status { position: fixed; bottom: 12px; right: 12px; background: var(--panel); padding: 6px 10px; border-radius: 6px; z-index: 5; }
-    #status:empty { display: none; }
-    #help { position: fixed; top: 52px; left: 12px; width: min(340px, 90vw); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; z-index: 6; }
-    #help h2 { font-size: 13px; margin: 8px 0 2px; color: var(--accent); }
-    #help h2:first-child { margin-top: 0; }
-    #help dl { display: grid; grid-template-columns: 92px 1fr; gap: 2px 10px; margin: 0; }
-    #help dt { white-space: nowrap; } #help dd { margin: 0; opacity: .85; }
-    .dim { color: #111; background: #ffffffd9; padding: 1px 5px; border-radius: 3px; font-size: 12px; white-space: nowrap; }
-    .dim.total { font-weight: 600; font-size: 13px; }
-    #dimlines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-    #dimlines path { stroke: #0b3d91; stroke-width: 1.4; fill: none; }
-    #dimlines text { font: 600 12px system-ui, sans-serif; fill: #0b3d91; text-anchor: middle; paint-order: stroke; stroke: #fffffff0; stroke-width: 4px; stroke-linejoin: round; }
-    /* walk HUD: crosshair + context action + key legend */
-    #walkhud { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
-    #walkhud .cross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px #0008; }
-    #action { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; white-space: nowrap; }
-    #walkhud .keys kbd { justify-self: start; }
-    #walkhud .keys { position: absolute; right: 12px; top: 56px; background: var(--panel); border-radius: 6px; padding: 6px 10px; display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; }
-    /* storage-cabinet comparison panel */
-    #cabinets { position: fixed; right: 12px; bottom: 52px; width: min(330px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; z-index: 5; }
-    #cabinets h2 { font-size: 13px; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
-    #cabinets h2 { align-items: center; }
-    #cabinets .sub { margin: 0 0 6px; color: var(--accent); font-size: 12px; }
-    #cabFold { padding: 0 7px; line-height: 18px; }
-    #cabinets fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
-    #cabinets legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    #cabinets label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 6px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; }
-    #cabinets label:has(input:checked) { border-color: var(--accent); background: #ffffff12; }
-    #cabinets label:has(input:focus-visible) { outline: 2px solid var(--focus); }
-    #cabinets input { margin-top: 3px; accent-color: var(--accent); }
-    #cabinets small { display: block; opacity: .8; }
-    #cabinets a { color: var(--accent); font-size: 12px; }
-    #cabinets .row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-    #cabinets .row a { display: inline-flex; align-items: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none; }
-    #cabinets[data-collapsed="true"] fieldset, #cabinets[data-collapsed="true"] .row { display: none; }
-    #cabinets[data-collapsed="true"] .sub { margin: 0; }
-    body.shot #ui, body.shot #hint, body.shot #status, body.shot #help, body.shot #walkhud, body.shot #cabinets, body.locked #hint { display: none; }
-    @media (max-width: 700px) { #walkhud .keys { display: none; } }
-  </style>
+  <meta name="description" content="A walkable, to-scale 3D model of a one-bedroom apartment, built to plan furniture before buying it." />
+  <!-- Link-preview card (LinkedIn, X, iMessage). These must be absolute URLs: change them if the site moves. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://apartment.pragnyalabs.com/" />
+  <meta property="og:title" content="Our apartment in 3D, to the inch" />
+  <meta property="og:description" content="A walkable model built to check that furniture fits before buying it. Orbit it, open the cabinets, measure anything." />
+  <meta property="og:image" content="https://apartment.pragnyalabs.com/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="loading" role="status"><b>Spruce Apartment 3D</b><span>Building the apartment…</span><i></i></div>
   <div id="app"></div>
   <div id="ui" role="toolbar" aria-label="View controls" aria-orientation="horizontal">
     <button data-mode="dollhouse" aria-pressed="false" aria-keyshortcuts="1" title="Dollhouse orbit (1)">Dollhouse</button>
     <button data-mode="walk" aria-pressed="false" aria-keyshortcuts="2" title="First-person walk (2)">Walk</button>
     <button data-mode="plan" aria-pressed="false" aria-keyshortcuts="3" title="Plan view (3)">Plan</button>
     <span class="sep" role="separator"></span>
+    <button id="tourBtn" aria-keyshortcuts="P" title="Guided tour (P)">▶ Tour</button>
+    <button id="measureBtn" aria-pressed="false" aria-keyshortcuts="T" title="Tape measure: click two points (T)">Measure</button>
+    <button id="lightsBtn" aria-expanded="false" aria-controls="lights" aria-keyshortcuts="L" title="Time of day and light switches (L)">Lights</button>
     <button id="dims" aria-pressed="false" aria-keyshortcuts="M" title="Plan dimensions (M)">Dimensions</button>
+    <span class="sep" role="separator"></span>
     <button id="rotate" aria-keyshortcuts="R" title="Rotate selected furniture 90° (R)" disabled>Rotate</button>
     <button id="reset" title="Put all furniture back">Reset furniture</button>
     <button id="helpBtn" aria-expanded="false" aria-controls="help" aria-keyshortcuts="H" title="Help (H)">Help</button>
   </div>
-  <section id="help" aria-label="Help" hidden>
+  <section id="help" class="panel" aria-label="Help" hidden>
     <h2>Views</h2>
     <dl>
       <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Dollhouse · Walk · Plan</dd>
       <dt><kbd>M</kbd></dt><dd>Plan dimensions + area check</dd>
+      <dt><kbd>P</kbd></dt><dd>Guided tour</dd>
+      <dt><kbd>T</kbd></dt><dd>Tape measure: click two points</dd>
+      <dt><kbd>L</kbd></dt><dd>Day / evening / night and light switches</dd>
       <dt><kbd>H</kbd> / <kbd>Esc</kbd></dt><dd>Open / close this panel</dd>
     </dl>
     <h2>Walk (eye height 5'7")</h2>
@@ -84,12 +49,12 @@
       <dt>Click</dt><dd>Mouse-look (Esc releases)</dd>
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Walk / strafe; walls and furniture stop you</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd> / <kbd>Q</kbd> <kbd>E</kbd></dt><dd>Turn without the mouse</dd>
-      <dt><kbd>F</kbd></dt><dd>Use what the crosshair points at: washer/dryer door, cabinet, coffee table, futon, wardrobe</dd>
+      <dt><kbd>F</kbd></dt><dd>Use what the crosshair points at: doors, cabinet, coffee table, futon, wardrobe, light fixtures</dd>
     </dl>
     <h2>Furniture (Dollhouse / Plan)</h2>
     <dl>
       <dt>Drag</dt><dd>Move on the floor; slides along walls</dd>
-      <dt>Click</dt><dd>Select · coffee table lifts its top</dd>
+      <dt>Click</dt><dd>Select: shows its size and the clear space around it; pieces that open, open</dd>
       <dt><kbd>N</kbd></dt><dd>Select next piece</dd>
       <dt>Arrows</dt><dd>Nudge 1" (<kbd>Shift</kbd> 6")</dd>
       <dt><kbd>R</kbd></dt><dd>Rotate 90°</dd>
@@ -101,6 +66,37 @@
       <dt>Click</dt><dd>Opens its doors (also the washer/dryer door)</dd>
     </dl>
   </section>
+  <section id="lights" class="panel" aria-label="Lights" hidden>
+    <h2>Time of day</h2>
+    <div class="seg" id="timeSeg"></div>
+    <h2>Light switches</h2>
+    <div id="fixtureList"></div>
+  </section>
+  <section id="info" class="panel" aria-live="polite" hidden>
+    <h2><span id="infoName"></span><button class="x" id="infoClose" type="button" title="Deselect (Esc)">×</button></h2>
+    <p class="size" id="infoSize"></p>
+    <small id="infoNote"></small>
+    <h2>Clear space around it</h2>
+    <dl id="infoGaps"></dl>
+    <div class="row"><button id="infoUse" type="button"></button><button id="infoRotate" type="button" class="desktop-only" title="Rotate 90° (R)">Rotate</button></div>
+  </section>
+  <section id="tour" class="panel" aria-live="polite" hidden>
+    <h2 id="tourTitle"></h2>
+    <p id="tourText"></p>
+    <div class="foot"><div class="dots" id="tourDots" aria-hidden="true"></div><button id="tourBack" type="button">Back</button><button id="tourNext" type="button" class="primary">Next</button><button id="tourExit" type="button" title="End the tour (Esc)">Exit</button></div>
+  </section>
+  <div id="intro" hidden>
+    <div class="panel" role="dialog" aria-labelledby="introTitle">
+      <h1 id="introTitle">Our apartment, to the inch</h1>
+      <p>I built this model before buying furniture, to check that each piece fits and to see how it looks in the room.</p>
+      <ul>
+        <li>Orbit the dollhouse, or switch to Plan for dimensions<span class="desktop-only">, or Walk through it</span>.</li>
+        <li>Click doors, cabinets, the futon and the coffee table to open them.</li>
+        <li>Click a piece of furniture to see its size and the space around it.</li>
+      </ul>
+      <div class="row"><button id="introTour" type="button" class="primary">▶ Take the 1-minute tour</button><button id="introSkip" type="button">Explore on my own</button></div>
+    </div>
+  </div>
   <div id="hint"></div>
   <div id="walkhud" hidden>
     <div class="cross" aria-hidden="true"></div>
