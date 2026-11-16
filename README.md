@@ -2,6 +2,8 @@
 
 A walkable, **to-scale** Three.js model of a one-bedroom apartment (Plan 1D, 676 sq ft), built so we could plan furniture before moving in. Every wall, door, cabinet and piece of furniture comes from the floor plan, tape-measured dimensions or product listings, and is placed to the inch. You can orbit it like a dollhouse, walk through it at eye height, open doors and cabinets, compare storage options in place, and view cabinets at real size in your room with iPhone AR.
 
+**Live: https://apartment.pragnyalabs.com** · iPhone AR page: https://apartment.pragnyalabs.com/ar.html
+
 ![Dollhouse view of the whole apartment](docs/screenshots/dollhouse.jpg)
 
 No external 3D assets or image textures are used. Every surface (wood grain, carpet, marble, bead board, louvers) is drawn procedurally on canvas, so the repo is just code.
@@ -158,7 +160,13 @@ Each tool starts its own Vite server and drives headless Chrome through Playwrig
 
 ## Deployment
 
-`pnpm run build` produces a fully static `dist/`. Any static host works. The deployed copy is served by Caddy, which provides HTTPS. Serve `.usdz` files as `model/vnd.usdz+zip`; the dev server already does this in `vite.config.js`.
+`pnpm run build` produces a fully static `dist/` with relative URLs, so it works at a domain root or under a sub-path. Any static host works; serve `.usdz` as `model/vnd.usdz+zip` or AR Quick Look won't open it (the dev server does this in `vite.config.js`).
+
+The live copy is served by nginx with a Let's Encrypt certificate. To redeploy:
+
+```bash
+pnpm run deploy        # vite build + rsync dist/ to $DEPLOY_TARGET (default hetzner-user:/var/www/apartment/)
+```
 
 ## Notes
 

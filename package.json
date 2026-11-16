@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "shot": "node tools/shot.mjs",
     "dev:phone": "vite --host --port 5183",
-    "export:ar": "node tools/export-ar.mjs"
+    "export:ar": "node tools/export-ar.mjs",
+    "deploy": "vite build && rsync -az --delete dist/ ${DEPLOY_TARGET:-hetzner-user:/var/www/apartment/}"
   },
   "keywords": [],
   "author": "Sreenivasan AC",
